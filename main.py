@@ -3,11 +3,37 @@ from __future__ import annotations
 
 import json
 
+from astrbot.api import FunctionTool
 from astrbot.api.all import *
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import Image, Node, Nodes, Plain
 
 from .parser import parse_message
+
+_PLUGIN_REF = None  # 模块级引用，在 __init__ 中赋值
+
+
+class _CreateForwardTool(FunctionTool):
+    name = "create_forward"
+    description = "创建一条合并转发消息，用于伪造聊天记录。"
+    parameters = {
+        "type": "object",
+        "properties": {"params": {"type": "string", "description": "JSON格式参数"}},
+        "required": ["params"],
+    }
+
+    async def execute(self, event: AstrMessageEvent, params: str = "") -> str:
+        data = json.loads(params)
+        segs = data["segments"]
+        title = data.get("title", "")
+        from .parser import Segment as Seg
+        segments = [Seg(qq=str(s["qq"]), nickname=s.get("nickname"), text=s.get("text", "")) for s in segs]
+        nicknames = {}
+        for seg in segments:
+            nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
+        news = [{"text": title, "prompt": title, "summary": "", "source": ""}] if title else None
+        await _PLUGIN_REF._send_forward(event, segments, nicknames, news=news)
+        return f"已发送合并转发（{len(segments)} 条消息）"
 
 
 async def _fetch_nickname(qq: str) -> str | None:
@@ -83,39 +109,11 @@ def _segments_to_onebot(segments, nicknames: dict[str, str]) -> list:
 class SessionFakerPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        self._register_llm_tools()
+        global _PLUGIN_REF
+        _PLUGIN_REF = self
+        self.context.add_llm_tools(_CreateForwardTool())
         logger.info("[FakeSession] 插件已初始化")
 
-    def _register_llm_tools(self):
-        from astrbot.api import FunctionTool
-        plugin = self
-
-        class CreateForwardTool(FunctionTool):
-            name = "create_forward"
-            description = "创建一条合并转发消息，用于伪造聊天记录。"
-            parameters = {
-                "type": "object",
-                "properties": {"params": {"type": "string", "description": "JSON格式参数"}},
-                "required": ["params"],
-            }
-
-            async def execute(self, event: AstrMessageEvent, params: str = "") -> str:
-                data = json.loads(params)
-                segs = data["segments"]
-                title = data.get("title", "")
-                from .parser import Segment as Seg
-                segments = [Seg(qq=str(s["qq"]), nickname=s.get("nickname"), text=s.get("text", "")) for s in segs]
-                nicknames = {}
-                for seg in segments:
-                    nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
-                news = [{"text": title, "prompt": title, "summary": "", "source": ""}] if title else None
-                await plugin._send_forward(event, segments, nicknames, news=news)
-                return f"已发送合并转发（{len(segments)} 条消息）"
-
-        self.context.add_llm_tools(CreateForwardTool())
-
-    def _get_bot(self, event: AstrMessageEvent):
-        pid = event.get_platform_id()
         inst = self.context.get_platform_inst(pid)
         if inst and hasattr(inst, "get_client"):
             return inst.get_client()
