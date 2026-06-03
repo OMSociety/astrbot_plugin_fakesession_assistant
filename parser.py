@@ -12,6 +12,7 @@ from astrbot.api.message_components import Image, Plain
 class Segment:
     qq: str
     nickname: str | None = None
+    timestamp: int | None = None
     text: str = ""
     images: list[str] = field(default_factory=list)
     at_users: list[str] = field(default_factory=list)

@@ -90,10 +90,13 @@ def _segments_to_onebot(segments, nicknames: dict[str, str]) -> list:
             content.append({"type": "image", "data": {"file": img_url}})
         if not content:
             content = [{"type": "text", "data": {"text": "[图片]"}}]
-        result.append({
+        node = {
             "type": "node",
             "data": {"user_id": int(seg.qq), "nickname": nick, "content": content},
-        })
+        }
+        if seg.timestamp:
+            node["data"]["time"] = seg.timestamp
+        result.append(node)
     return result
 
 
@@ -115,6 +118,7 @@ class _CreateForwardTool(FunctionTool):
         title = data.get("title", "") if isinstance(data, dict) else ""
         from .parser import Segment as Seg
         segments = [Seg(qq=str(s["qq"]), nickname=s.get("nickname"), text=s.get("text", ""),
+                         timestamp=s.get("time"),  # Unix 秒级时间戳
                          images=[s["image"]] if s.get("image") else []) for s in segs]
         # 如果用户消息中附带了图片，追加到最后一个段
         from astrbot.api.message_components import Image as CompImage
