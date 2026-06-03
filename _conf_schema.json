@@ -1,0 +1,50 @@
+{
+  "napcat": {
+    "type": "object",
+    "description": "NapCat 连接配置",
+    "hint": "机器人通过 NapCat 的 HTTP API 发送伪造的合并转发消息",
+    "items": {
+      "napcat_http_url": {
+        "type": "string",
+        "description": "NapCat HTTP API 地址",
+        "hint": "NapCat 默认监听 3000 端口，同机部署填写 http://127.0.0.1:3000",
+        "default": "http://127.0.0.1:3000"
+      },
+      "napcat_token": {
+        "type": "string",
+        "description": "NapCat WebUI Token",
+        "hint": "若在 NapCat WebUI 中启用了 Token 认证则填写，否则留空",
+        "default": ""
+      },
+      "request_timeout": {
+        "type": "int",
+        "description": "HTTP 请求超时（秒）",
+        "hint": "与 NapCat 通信的超时时间",
+        "default": 10,
+        "slider": {
+          "min": 3,
+          "max": 60,
+          "step": 1
+        }
+      }
+    }
+  },
+  "nickname": {
+    "type": "object",
+    "description": "昵称配置",
+    "hint": "控制伪造消息时发送者昵称的获取与缓存行为",
+    "items": {
+      "nickname_cache_ttl": {
+        "type": "int",
+        "description": "昵称缓存时间（秒）",
+        "hint": "设为 0 则每次实时查询，设为 300 则缓存 5 分钟",
+        "default": 300,
+        "slider": {
+          "min": 0,
+          "max": 3600,
+          "step": 60
+        }
+      }
+    }
+  }
+}

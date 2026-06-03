@@ -1,6 +1,5 @@
 """合并转发伪造助手 — main.py"""
 from __future__ import annotations
-import yaml
 from pathlib import Path
 
 from astrbot.api.all import *
@@ -10,35 +9,18 @@ from .parser import parse_message
 from .napcat import NapCatClient
 from .builder import build_forward_nodes
 
-PLUGIN_DIR = Path(__file__).parent
-
-
-def _load_config() -> dict:
-    """加载 config.yaml，优先读 data 目录，不存在则读插件目录"""
-    data_dir = Path("data/config")
-    data_config = data_dir / "fakesession_config.yaml"
-    if data_config.exists():
-        with open(data_config, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-    plugin_config = PLUGIN_DIR / "config.yaml"
-    if plugin_config.exists():
-        with open(plugin_config, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-    return {}
-
 
 @register("fakesession_assistant", "Slandre & LongMarch", "合并转发伪造助手", "1.0.0")
 class SessionFakerPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        cfg = _load_config()
+        cfg = context.get_config()
         self.napcat = NapCatClient(
             http_url=cfg.get("napcat_http_url", "http://127.0.0.1:3000"),
             token=cfg.get("napcat_token", ""),
             timeout=cfg.get("request_timeout", 10),
         )
         self.napcat.set_cache_ttl(cfg.get("nickname_cache_ttl", 300))
-        self.nickname_override: dict[str, str] = cfg.get("nickname_override", {})
         logger.info("[FakeSession] 插件已初始化")
 
     @event_message_type(EventMessageType.ALL)
@@ -64,7 +46,7 @@ class SessionFakerPlugin(Star):
         # 收集昵称
         nicknames: dict[str, str] = {}
         for seg in segments:
-            override = seg.nickname or self.nickname_override.get(seg.qq)
+            override = seg.nickname
             nicknames[seg.qq] = await self.napcat.get_nickname(
                 qq=seg.qq, group_id=group_id, override=override
             )
