@@ -78,6 +78,7 @@ def parse_message(event, raw_components: list | None = None) -> list[Segment]:
             raw_text += comp.text
         elif isinstance(comp, Image):
             url = getattr(comp, "url", "") or getattr(comp, "file", "")
+            logger.info(f"[FakeSession] 图片: url={repr(getattr(comp, 'url', None))} file={repr(getattr(comp, 'file', None))} final={repr(url)}")
             if url:
                 image_offsets.append((len(raw_text), url))
 
