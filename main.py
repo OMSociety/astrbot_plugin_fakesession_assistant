@@ -33,6 +33,8 @@ async def _build_nodes(segments) -> Nodes:
         content: list = [Plain(seg.text)] if seg.text else []
         for img_url in seg.images:
             content.append(Image.fromURL(img_url))
+        if not content:
+            content = [Plain("[图片]")]  # 纯图片时给条占位文本
         nodes.append(Node(uin=int(seg.qq), name=nickname, content=content))
     return Nodes(nodes=nodes)
 

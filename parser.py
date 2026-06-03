@@ -1,4 +1,4 @@
-"""消息解析器 — QQ号|昵称|内容 格式，\\| 切段"""
+"""消息解析器 — QQ号|昵称|内容 格式，\\| 切段，按位置分配图片"""
 from __future__ import annotations
 
 import re
@@ -19,7 +19,6 @@ class Segment:
 
 
 def _split_raw_text(raw: str) -> list[str]:
-    """用 \\| 切分消息段"""
     parts = []
     current = []
     i = 0
@@ -36,11 +35,9 @@ def _split_raw_text(raw: str) -> list[str]:
 
 
 def _parse_segment(block: str) -> Segment | None:
-    """解析 QQ号|内容 或 QQ号|昵称|内容 或 QQ号||时间戳|内容"""
     at_pattern = re.compile(r"@(\d{5,12})")
     at_users = at_pattern.findall(block)
     block_clean = at_pattern.sub("", block).strip()
-
     parts = block_clean.split("|")
     if not parts or not re.match(r"^\d{5,12}$", parts[0].strip()):
         return None
@@ -49,25 +46,20 @@ def _parse_segment(block: str) -> Segment | None:
     if len(parts) == 1:
         return seg
     if len(parts) == 2:
-        # QQ|内容
         seg.text = parts[1].strip()
         return seg
 
-    # len >= 3: QQ|昵称|内容 或 QQ||时间戳|内容
     second = parts[1].strip()
     if second == "":
-        # QQ||时间戳|内容
         if re.match(r"^\d{10}$", parts[2].strip()):
             seg.timestamp = int(parts[2].strip())
             seg.text = "|".join(parts[3:]).strip() if len(parts) > 3 else ""
         else:
             seg.text = "|".join(parts[2:]).strip()
     elif re.match(r"^\d{10}$", second):
-        # QQ|时间戳|内容
         seg.timestamp = int(second)
         seg.text = "|".join(parts[2:]).strip()
     else:
-        # QQ|昵称|内容
         seg.nickname = second
         seg.text = "|".join(parts[2:]).strip()
 
@@ -75,41 +67,53 @@ def _parse_segment(block: str) -> Segment | None:
 
 
 def parse_message(event, raw_components: list | None = None) -> list[Segment]:
-    """从 event 或原始组件列表解析消息段"""
-    raw_text = ""
-    images: list[str] = []
+    """从原始组件列表解析：按 \\| 切 blocks，图片跟在其前面的 block 后"""
     comps = raw_components or (event.message_obj.message if hasattr(event.message_obj, "message") else [])
 
+    # 第一步：收集所有 Plain 文本和图片，并记录图片之前的累计文本长度
+    raw_text = ""
+    image_offsets: list[tuple[int, str]] = []  # (在 raw_text 中的位置, url)
     for comp in comps:
         if isinstance(comp, Plain):
             raw_text += comp.text
         elif isinstance(comp, Image):
             url = getattr(comp, "url", "") or getattr(comp, "file", "")
             if url:
-                images.append(url)
+                image_offsets.append((len(raw_text), url))
 
     if not raw_text.startswith("伪造消息"):
         return []
 
-    raw_text = raw_text[len("伪造消息"):].lstrip()
+    prefix_len = len("伪造消息")
+    raw_text = raw_text[prefix_len:].lstrip()
+    # 图片位置也要减去前缀长度
+    image_offsets = [(o - prefix_len, u) for o, u in image_offsets if o > prefix_len]
+
     blocks = _split_raw_text(raw_text)
     segments: list[Segment] = []
 
-    # 简单分配：图片按顺序给段，段不够就全给第一段
-    img_idx = 0
+    # 按 block 在 raw_text 中的位置分配图片
+    pos = 0
     for block in blocks:
+        block_start = raw_text.find(block, pos)
+        if block_start == -1:
+            pos += len(block)
+            continue
+        block_end = block_start + len(block)
+        pos = block_end
+
         seg = _parse_segment(block)
         if seg is None:
             continue
-        if img_idx < len(images):
-            seg.images.append(images[img_idx])
-            img_idx += 1
-        segments.append(seg)
 
-    # 多余的图片挂在最后一段
-    while img_idx < len(images) and segments:
-        segments[-1].images.append(images[img_idx])
-        img_idx += 1
+        # 收集该 block 范围内的图片
+        for offset, url in image_offsets:
+            if block_start <= offset < block_end:
+                seg.images.append(url)
 
-    logger.debug(f"[FakeSession] 解析: {len(blocks)} 段, {len(images)} 张图片, {len(segments)} 个有效段")
+        # 跳过空段（除非有图片）
+        if seg.text or seg.images:
+            segments.append(seg)
+
+    logger.debug(f"[FakeSession] 解析: {len(blocks)} 段, {len(image_offsets)} 张图片, {len(segments)} 个有效段")
     return segments
