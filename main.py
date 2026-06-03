@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass, field
 
 from astrbot.api import FunctionTool
 from astrbot.api.all import *
@@ -13,16 +14,15 @@ from .parser import parse_message
 _PLUGIN_REF = None  # 模块级引用，在 __init__ 中赋值
 
 
+@dataclass
 class _CreateForwardTool(FunctionTool):
     name: str = "create_forward"
     description: str = "创建一条合并转发消息，用于伪造聊天记录。"
-    parameters: dict = {
+    parameters: dict = field(default_factory=lambda: {
         "type": "object",
         "properties": {"params": {"type": "string", "description": "JSON格式参数"}},
         "required": ["params"],
-    }
-    handler: any = None
-    handler_module_path: str | None = None
+    })
 
     async def execute(self, event: AstrMessageEvent, params: str = "") -> str:
         data = json.loads(params)
