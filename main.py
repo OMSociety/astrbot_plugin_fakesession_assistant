@@ -11,31 +11,7 @@ from astrbot.api.message_components import Image, Node, Nodes, Plain
 
 from .parser import parse_message
 
-_PLUGIN_REF = None  # 模块级引用，在 __init__ 中赋值
-
-
-@dataclass
-class _CreateForwardTool(FunctionTool):
-    name: str = "create_forward"
-    description: str = "创建一条合并转发消息，用于伪造聊天记录。"
-    parameters: dict = field(default_factory=lambda: {
-        "type": "object",
-        "properties": {"params": {"type": "string", "description": "JSON格式参数"}},
-        "required": ["params"],
-    })
-
-    async def execute(self, event: AstrMessageEvent, params: str = "") -> str:
-        data = json.loads(params)
-        segs = data["segments"]
-        title = data.get("title", "")
-        from .parser import Segment as Seg
-        segments = [Seg(qq=str(s["qq"]), nickname=s.get("nickname"), text=s.get("text", "")) for s in segs]
-        nicknames = {}
-        for seg in segments:
-            nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
-        news = [{"text": title, "prompt": title, "summary": "", "source": ""}] if title else None
-        await _PLUGIN_REF._send_forward(event, segments, nicknames, news=news)
-        return f"已发送合并转发（{len(segments)} 条消息）"
+_PLUGIN_REF = None
 
 
 async def _fetch_nickname(qq: str) -> str | None:
@@ -107,6 +83,30 @@ def _segments_to_onebot(segments, nicknames: dict[str, str]) -> list:
     return result
 
 
+@dataclass
+class _CreateForwardTool(FunctionTool):
+    name: str = "create_forward"
+    description: str = "创建一条合并转发消息，用于伪造聊天记录。"
+    parameters: dict = field(default_factory=lambda: {
+        "type": "object",
+        "properties": {"params": {"type": "string", "description": "JSON格式参数"}},
+        "required": ["params"],
+    })
+
+    async def execute(self, event: AstrMessageEvent, params: str = "") -> str:
+        data = json.loads(params)
+        segs = data["segments"]
+        title = data.get("title", "")
+        from .parser import Segment as Seg
+        segments = [Seg(qq=str(s["qq"]), nickname=s.get("nickname"), text=s.get("text", "")) for s in segs]
+        nicknames = {}
+        for seg in segments:
+            nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
+        news = [{"text": title, "prompt": title, "summary": "", "source": ""}] if title else None
+        await _PLUGIN_REF._send_forward(event, segments, nicknames, news=news)
+        return f"已发送合并转发（{len(segments)} 条消息）"
+
+
 @register("fakesession_assistant", "Slandre & LongMarch", "合并转发伪造助手", "1.0.0")
 class SessionFakerPlugin(Star):
     def __init__(self, context: Context):
@@ -116,6 +116,8 @@ class SessionFakerPlugin(Star):
         self.context.add_llm_tools(_CreateForwardTool())
         logger.info("[FakeSession] 插件已初始化")
 
+    def _get_bot(self, event: AstrMessageEvent):
+        pid = event.get_platform_id()
         inst = self.context.get_platform_inst(pid)
         if inst and hasattr(inst, "get_client"):
             return inst.get_client()
