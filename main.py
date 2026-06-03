@@ -82,25 +82,18 @@ def _segments_to_onebot(segments, nicknames: dict[str, str]) -> list:
 class SessionFakerPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        self._adapter = None
         logger.info("[FakeSession] 插件已初始化")
 
     def _get_bot(self, event: AstrMessageEvent):
-        """通过 AstrBot context 获取 CQHttp 客户端"""
-        if self._adapter is None:
-            # 方式1: 用 platform name 获取 (deprecated but reliable)
-            inst = self.context.get_platform("aiocqhttp")
-            if inst and hasattr(inst, "get_client"):
-                self._adapter = inst
-                logger.info("[FakeSession] adapter: aiocqhttp (by name)")
-            else:
-                # 方式2: 用 platform ID 获取
-                pid = event.get_platform_id()
-                inst2 = self.context.get_platform_inst(pid)
-                if inst2 and hasattr(inst2, "get_client"):
-                    self._adapter = inst2
-                    logger.info(f"[FakeSession] adapter: {pid}")
-        return self._adapter.get_client() if self._adapter else None
+        """获取当前事件的 OneBot 客户端"""
+        pid = event.get_platform_id()
+        inst = self.context.get_platform_inst(pid)
+        if inst and hasattr(inst, "get_client"):
+            return inst.get_client()
+        inst2 = self.context.get_platform("aiocqhttp")
+        if inst2 and hasattr(inst2, "get_client"):
+            return inst2.get_client()
+        return None
 
     @filter.command("伪造消息")
     async def fake_forward(self, event: AstrMessageEvent):
