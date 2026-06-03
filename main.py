@@ -1,11 +1,9 @@
 """合并转发伪造助手 — main.py"""
 from __future__ import annotations
 
-import json as _json
-
 from astrbot.api.all import *
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import Image, Json, Node, Nodes, Plain
+from astrbot.api.message_components import Image, Node, Nodes, Plain
 
 from .parser import parse_message
 
@@ -90,6 +88,7 @@ class SessionFakerPlugin(Star):
 
     @filter.command("伪造链接")
     async def fake_link(self, event: AstrMessageEvent):
+        """伪装链接：/伪造链接 QQ|昵称|消息 \\| QQ|昵称|消息 \\\\| http://url"""
         logger.info("[FakeSession] === 伪造链接 ===")
         try:
             content = _extract_content(event.message_obj.message, "/伪造链接")
@@ -103,28 +102,18 @@ class SessionFakerPlugin(Star):
             if len(parts) != 2:
                 yield event.plain_result("格式错误，缺少 \\\\| 和链接")
                 return
-            msg_part, url = parts[0].strip(), parts[1].strip()
+            msg_part = parts[0].rstrip("\\").strip()
+            url = parts[1].strip()
+            if not msg_part:
+                yield event.plain_result("格式错误，缺少伪装消息。")
+                return
             new_comps = _rebuild_components(event.message_obj.message, f"伪造消息{msg_part}")
             segments = parse_message(event, raw_components=new_comps)
             if not segments:
                 yield event.plain_result("未能解析伪装消息段。")
                 return
             nodes = await _build_nodes(segments)
-            nodes.nodes.append(Node(
-                uin=2854196310,
-                name="Link",
-                content=[
-                    Plain("\u200b"),
-                    Json(data=_json.dumps({
-                        "app": "com.tencent.structmsg",
-                        "desc": "链接",
-                        "view": url,
-                        "ver": "0.0.0.1",
-                        "prompt": url[:20],
-                        "meta": {"news": {"title": url.split("/")[-1][:30], "desc": url, "jumpUrl": url}},
-                    }))
-                ]
-            ))
+            nodes.nodes.append(Node(uin=2854196310, name="Link", content=[Plain(url)]))
             yield event.chain_result([nodes])
         except Exception as e:
             logger.error(f"[FakeSession] 伪造链接异常: {e}", exc_info=True)
