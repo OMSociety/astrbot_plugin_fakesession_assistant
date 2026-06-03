@@ -162,7 +162,7 @@ class SessionFakerPlugin(Star):
                 await bot.call_action("send_group_forward_msg", group_id=int(msg.group_id), messages=ob_messages, news=news)
             else:
                 await bot.call_action("send_private_forward_msg", user_id=int(msg.sender.user_id), messages=ob_messages, news=news)
-            yield event.plain_result("\u200b")
+            event.stop_event()
         except Exception as e:
             logger.error(f"[FakeSession] 伪造外表异常: {e}", exc_info=True)
             yield event.plain_result(f"内部错误：{e}")
