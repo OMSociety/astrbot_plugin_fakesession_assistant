@@ -14,13 +14,15 @@ _PLUGIN_REF = None  # 模块级引用，在 __init__ 中赋值
 
 
 class _CreateForwardTool(FunctionTool):
-    name = "create_forward"
-    description = "创建一条合并转发消息，用于伪造聊天记录。"
-    parameters = {
+    name: str = "create_forward"
+    description: str = "创建一条合并转发消息，用于伪造聊天记录。"
+    parameters: dict = {
         "type": "object",
         "properties": {"params": {"type": "string", "description": "JSON格式参数"}},
         "required": ["params"],
     }
+    handler: any = None
+    handler_module_path: str | None = None
 
     async def execute(self, event: AstrMessageEvent, params: str = "") -> str:
         data = json.loads(params)
