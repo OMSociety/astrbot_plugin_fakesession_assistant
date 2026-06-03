@@ -94,7 +94,7 @@ class _CreateForwardTool(FunctionTool):
     })
 
     async def call(self, context, params: str = "") -> str:
-        event = context.messages[-1]  # 从上下文取最后一个消息事件
+        event = context.context.event  # AstrBot 标准路径
         data = json.loads(params)
         segs = data["segments"]
         title = data.get("title", "")
