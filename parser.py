@@ -111,8 +111,11 @@ def parse_message(event, raw_components: list | None = None) -> list[Segment]:
             if block_start <= offset < block_end:
                 seg.images.append(url)
 
-        # 跳过空段（除非有图片）
+        # 有文本或有图才保留
         if seg.text or seg.images:
+            segments.append(seg)
+        else:
+            # 空段也保留，等下 assign 剩余图片
             segments.append(seg)
 
     # 未分配的图片（在最后一段之后）挂到最后一段
