@@ -115,5 +115,11 @@ def parse_message(event, raw_components: list | None = None) -> list[Segment]:
         if seg.text or seg.images:
             segments.append(seg)
 
+    # 未分配的图片（在最后一段之后）挂到最后一段
+    if image_offsets and pos < len(raw_text):
+        remaining = [url for offset, url in image_offsets if offset >= pos]
+        if remaining and segments:
+            segments[-1].images.extend(remaining)
+
     logger.debug(f"[FakeSession] 解析: {len(blocks)} 段, {len(image_offsets)} 张图片, {len(segments)} 个有效段")
     return segments
