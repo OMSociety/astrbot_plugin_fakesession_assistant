@@ -14,14 +14,23 @@ from .parser import parse_message
 class SessionFakerPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        cfg = context.get_config()
-        self.napcat = NapCatClient(
-            http_url=cfg.get("napcat_http_url", "http://127.0.0.1:3000"),
-            token=cfg.get("napcat_token", ""),
-            timeout=cfg.get("request_timeout", 10),
-        )
-        self.napcat.set_cache_ttl(cfg.get("nickname_cache_ttl", 300))
+        self.context = context
+        self.napcat: NapCatClient | None = None
         logger.info("[FakeSession] 插件已初始化")
+
+    def _get_napcat(self) -> NapCatClient:
+        """每次请求时重新读配置，确保 WebUI 改动即时生效"""
+        cfg = self.context.get_config()
+        url = cfg.get("napcat_http_url", "http://127.0.0.1:3000")
+        token = cfg.get("napcat_token", "")
+        timeout = cfg.get("request_timeout", 10)
+        ttl = cfg.get("nickname_cache_ttl", 300)
+
+        if self.napcat is None or self.napcat.http_url != url:
+            self.napcat = NapCatClient(http_url=url, token=token, timeout=timeout)
+            self.napcat.set_cache_ttl(ttl)
+            logger.info(f"[FakeSession] NapCat URL: {url}")
+        return self.napcat
 
     @filter.command("伪造消息")
     async def fake_forward(self, event: AstrMessageEvent):
@@ -68,18 +77,18 @@ class SessionFakerPlugin(Star):
 
         nicknames: dict[str, str] = {}
         for seg in segments:
-            nicknames[seg.qq] = await self.napcat.get_nickname(
+            nicknames[seg.qq] = await self._get_napcat().get_nickname(
                 qq=seg.qq, group_id=group_id, override=seg.nickname
             )
             for at_qq in seg.at_users:
                 if at_qq not in nicknames:
-                    nicknames[at_qq] = await self.napcat.get_nickname(
+                    nicknames[at_qq] = await self._get_napcat().get_nickname(
                         qq=at_qq, group_id=group_id
                     )
 
         nodes = build_forward_nodes(segments, nicknames)
         try:
-            result = await self.napcat.send_forward(group_id, user_id, nodes)
+            result = await self._get_napcat().send_forward(group_id, user_id, nodes)
             if result.get("status") != "ok":
                 err_msg = result.get("message") or result.get("wording") or str(result)
                 logger.error(f"[FakeSession] 发送失败: {err_msg}")

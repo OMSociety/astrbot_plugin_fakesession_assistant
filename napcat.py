@@ -13,7 +13,7 @@ class NapCatClient:
         self.http_url = http_url.rstrip("/")
         self.token = token
         self.timeout = timeout
-        self._cache: dict[str, tuple[str, float]] = {}  # qq -> (nickname, expire_ts)
+        self._cache: dict[str, tuple[str, float]] = {}
         self._cache_ttl: int = 300
 
     def set_cache_ttl(self, ttl: int):
