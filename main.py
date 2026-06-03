@@ -1,9 +1,11 @@
 """合并转发伪造助手 — main.py"""
 from __future__ import annotations
 
+import json as _json
+
 from astrbot.api.all import *
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import Image, Node, Nodes, Plain
+from astrbot.api.message_components import Image, Json, Node, Nodes, Plain
 
 from .parser import parse_message
 
@@ -108,7 +110,21 @@ class SessionFakerPlugin(Star):
                 yield event.plain_result("未能解析伪装消息段。")
                 return
             nodes = await _build_nodes(segments)
-            nodes.nodes.append(Node(uin=2854196310, name="Link", content=[Plain(url)]))
+            nodes.nodes.append(Node(
+                uin=2854196310,
+                name="Link",
+                content=[
+                    Plain("\u200b"),
+                    Json(data=_json.dumps({
+                        "app": "com.tencent.structmsg",
+                        "desc": "链接",
+                        "view": url,
+                        "ver": "0.0.0.1",
+                        "prompt": url[:20],
+                        "meta": {"news": {"title": url.split("/")[-1][:30], "desc": url, "jumpUrl": url}},
+                    }))
+                ]
+            ))
             yield event.chain_result([nodes])
         except Exception as e:
             logger.error(f"[FakeSession] 伪造链接异常: {e}", exc_info=True)
