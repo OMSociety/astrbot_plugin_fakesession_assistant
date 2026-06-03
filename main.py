@@ -33,15 +33,16 @@ class SessionFakerPlugin(Star):
             )
             return
 
-        # 重建 message_obj 以复用 parser（parser 依赖 message_obj.message 遍历）
+        # 重建 message_obj 以复用 parser
         from astrbot.api.message_components import Plain
         fake_text = f"伪造消息{message}"
         event.message_obj.message = [Plain(fake_text)]
         event.message_obj.message_str = fake_text
+        logger.info(f"[FakeSession] DEBUG message={repr(message)}")
 
         segments = parse_message(event)
         if not segments:
-            yield event.plain_result("未能解析出有效的消息节点，请检查格式。")
+            yield event.plain_result(f"未能解析，原始参数: {message[:100]}")
             return
 
         msg = event.message_obj
