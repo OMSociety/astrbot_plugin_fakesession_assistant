@@ -116,24 +116,24 @@ class SessionFakerPlugin(Star):
 
     @filter.command("伪造外表")
     async def fake_appearance(self, event: AstrMessageEvent):
-        """伪造外表：/伪造外表 QQ|昵称|消息 \\| ... \\\\| 标题|摘要"""
+        """伪造外表：/伪造外表 QQ|昵称|消息 \\| ... \\\\| 标题"""
         logger.info("[FakeSession] === 伪造外表 ===")
         try:
             content = _extract_content(event.message_obj.message, "/伪造外表")
             if not content:
                 yield event.plain_result(
-                    "/伪造外表 QQ|昵称|消息 \\| ... \\\\| 标题|摘要\n"
-                    "示例：/伪造外表 123456|小明|你好 \\\\| 私聊|小明: 你好"
+                    "/伪造外表 QQ|昵称|消息 \\| ... \\\\| 标题\n"
+                    "示例：/伪造外表 123456|小明|你好 \\\\| 私密对话"
                 )
                 return
             parts = content.rsplit("\\|", 1)
             if len(parts) != 2:
-                yield event.plain_result("格式错误，缺少 \\\\| 分割内层和外层")
+                yield event.plain_result("格式错误，缺少 \\\\| 和标题")
                 return
             inner = parts[0].rstrip("\\").strip()
-            outer = parts[1].strip()
-            if not inner or not outer:
-                yield event.plain_result("格式错误，内层消息和外层描述都不能为空")
+            title = parts[1].strip()
+            if not inner or not title:
+                yield event.plain_result("内层消息和标题都不能为空")
                 return
 
             new_comps = _rebuild_components(event.message_obj.message, f"伪造消息{inner}")
@@ -146,17 +146,12 @@ class SessionFakerPlugin(Star):
             for seg in segments:
                 nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
 
-            outer_parts = outer.split("|", 1)
-            title = outer_parts[0].strip()
-            summary = outer_parts[1].strip() if len(outer_parts) > 1 else nicknames.get(segments[0].qq, "")
-            prompt = title if not summary else title + chr(10) + summary
-
             bot = self._get_bot(event)
             if bot is None:
                 yield event.plain_result("无法连接 OneBot 适配器。")
                 return
             ob_messages = _segments_to_onebot(segments, nicknames)
-            news = [{"text": title, "prompt": prompt, "summary": summary, "source": ""}]
+            news = [{"text": title, "prompt": title, "summary": "", "source": ""}]
             msg = event.message_obj
             if getattr(msg, "group_id", None):
                 await bot.call_action("send_group_forward_msg", group_id=int(msg.group_id), messages=ob_messages, news=news)
@@ -175,8 +170,8 @@ class SessionFakerPlugin(Star):
             "/伪造消息 QQ号|内容 \\| QQ号|昵称|内容\n"
             "示例：/伪造消息 123456|你好 \\| 654321|小王|你也好\n\n"
             "【伪造外表】\n"
-            "/伪造外表 QQ|昵称|消息 \\| ... \\\\| 标题|摘要\n"
-            "示例：/伪造外表 123456|小明|你好 \\\\| 私聊|小明: 你好\n\n"
+            "/伪造外表 QQ|昵称|消息 \\| ... \\\\| 标题\n"
+            "示例：/伪造外表 123456|小明|你好 \\\\| 私密对话\n\n"
             "- \\| 分割段  | 分割QQ/内容  - 图片自动分配\n"
             "- 昵称可省略，自动从API获取"
         )
