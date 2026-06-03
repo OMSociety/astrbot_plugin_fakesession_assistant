@@ -1,6 +1,9 @@
 """合并转发伪造助手 — main.py"""
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from astrbot.api.all import *
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import Plain
@@ -14,19 +17,21 @@ from .parser import parse_message
 class SessionFakerPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        self._context = context
         self._napcat: NapCatClient | None = None
         logger.info("[FakeSession] 插件已初始化")
 
     def _get_napcat(self) -> NapCatClient:
         """每次请求时重新读配置并初始化 NapCat 客户端"""
-        raw = self._context.get_config()
-        logger.info(f"[FakeSession] raw config: {raw}")
-        # WebUI 按 _conf_schema.json 分组存储为嵌套 dict，先拍平
+        config_path = Path("data/config/fakesession_assistant_config.json")
         cfg: dict = {}
-        for section in raw.values():
-            if isinstance(section, dict):
-                cfg.update(section)
+        if config_path.exists():
+            try:
+                raw = json.loads(config_path.read_text(encoding="utf-8-sig"))
+                for section in raw.values():
+                    if isinstance(section, dict):
+                        cfg.update(section)
+            except Exception:
+                pass
 
         url = cfg.get("napcat_http_url", "http://127.0.0.1:3000")
         token = cfg.get("napcat_token", "")
