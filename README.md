@@ -1,4 +1,4 @@
-# 合并转发伪造助手 SessionFaker
+# 合并转发伪造助手 FakesessionAssistant
 
 [![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant)
 [![AstrBot](https://img.shields.io/badge/AstrBot-%E2%89%A5v4-green.svg)](https://github.com/AstrBotDevs/AstrBot)
@@ -6,7 +6,7 @@
 
 基于 NapCat API 的合并转发消息伪造工具。支持自定义发送者、昵称、时间戳、@ 提及和图片，让你的机器人说出任何人想说的话。
 
-> 本项目由 AI 编写
+> 本项目由 AI 编写，部分源码基于 [astrbot_plugin_SessionFaker](https://github.com/advent259141/astrbot_plugin_SessionFaker) 。
 
 [快速开始](#-快速开始) • [使用说明](#-使用说明) • [配置项](#-配置项说明) • [架构](#-架构)
 
@@ -111,19 +111,6 @@ napcat.py    ← NapCat HTTP 客户端（get_stranger_info / get_group_member_in
 builder.py   ← parser 输出 → OneBot forward message JSON
 config.yaml  ← 插件配置
 ```
-
----
-
-## 📝 更新日志
-
-### v1.0.0
-- 🎉 首个版本
-- ✅ 基于 NapCat API 重构，替换外部昵称 API
-- ✅ `\|` 段分割 + `|` 内部分割语法
-- ✅ 群名片自动识别（群聊场景）
-- ✅ 自定义昵称、时间戳、@ 提及、图片
-- ✅ 群聊 / 私聊自动适配
-- ✅ YAML 配置 + 昵称缓存
 
 ---
 
