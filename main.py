@@ -85,23 +85,21 @@ class SessionFakerPlugin(Star):
         self._adapter = None
         logger.info("[FakeSession] 插件已初始化")
 
-    def _get_bot(self):
-        """获取 OneBot 客户端"""
+    def _get_bot(self, event: AstrMessageEvent):
+        """通过 AstrBot context 获取 CQHttp 客户端"""
         if self._adapter is None:
-            # 尝试多个可能的 platform ID
-            for pid in ["aiocqhttp", "aiocqhttp_adapter", "cqhttp", "onebot"]:
-                inst = self.context.get_platform_inst(pid)
-                if inst and hasattr(inst, "get_client"):
-                    self._adapter = inst
-                    logger.info(f"[FakeSession] 找到 adapter: {pid}")
-                    break
-            if self._adapter is None:
-                # fallback: 遍历所有 platform
-                for star in self.context.get_all_stars():
-                    if hasattr(star, "get_client"):
-                        self._adapter = star
-                        logger.info("[FakeSession] 通过 get_all_stars 找到 adapter")
-                        break
+            # 方式1: 用 platform name 获取 (deprecated but reliable)
+            inst = self.context.get_platform("aiocqhttp")
+            if inst and hasattr(inst, "get_client"):
+                self._adapter = inst
+                logger.info("[FakeSession] adapter: aiocqhttp (by name)")
+            else:
+                # 方式2: 用 platform ID 获取
+                pid = event.get_platform_id()
+                inst2 = self.context.get_platform_inst(pid)
+                if inst2 and hasattr(inst2, "get_client"):
+                    self._adapter = inst2
+                    logger.info(f"[FakeSession] adapter: {pid}")
         return self._adapter.get_client() if self._adapter else None
 
     @filter.command("伪造消息")
@@ -160,7 +158,7 @@ class SessionFakerPlugin(Star):
                 nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
 
             # 通过 OneBot WS 直接调 send_*_forward_msg（带 news 实现跳转）
-            bot = self._get_bot()
+            bot = self._get_bot(event)
             if bot is None:
                 yield event.plain_result("无法连接 OneBot 适配器，请联系管理员。")
                 return
