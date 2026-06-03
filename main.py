@@ -108,8 +108,9 @@ class _CreateForwardTool(FunctionTool):
     })
 
     async def call(self, context, params: str = "") -> str:
-        event = context.context.event  # AstrBot 标准路径
+        event = context.context.event
         data = json.loads(params)
+        # 兼容两种 LLM 传参风格：{"segments": [...]} 或直接 [...]
         segs = data["segments"] if isinstance(data, dict) else data
         title = data.get("title", "") if isinstance(data, dict) else ""
         from .parser import Segment as Seg
