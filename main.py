@@ -103,15 +103,15 @@ class _CreateForwardTool(FunctionTool):
     description: str = "创建一条合并转发消息，用于伪造聊天记录。每段必须提供 qq 和 text，**强烈建议同时提供 nickname**（否则大概率显示为 QQ 号）。"
     parameters: dict = field(default_factory=lambda: {
         "type": "object",
-        "properties": {"params": {"type": "string", "description": "JSON。每项须含 qq/text，nickname 尽量填写"}},
+        "properties": {"params": {"type": "string", "description": 'JSON。格式为 {"segments":[{"qq":"...","text":"...","nickname":"..."}],"title":"..."}。每项须含 qq/text，nickname 尽量填写，title 可选。'}},
         "required": ["params"],
     })
 
     async def call(self, context, params: str = "") -> str:
         event = context.context.event  # AstrBot 标准路径
         data = json.loads(params)
-        segs = data["segments"]
-        title = data.get("title", "")
+        segs = data["segments"] if isinstance(data, dict) else data
+        title = data.get("title", "") if isinstance(data, dict) else ""
         from .parser import Segment as Seg
         segments = [Seg(qq=str(s["qq"]), nickname=s.get("nickname"), text=s.get("text", "")) for s in segs]
         nicknames = {}
