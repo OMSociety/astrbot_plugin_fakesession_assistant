@@ -100,10 +100,10 @@ def _segments_to_onebot(segments, nicknames: dict[str, str]) -> list:
 @dataclass
 class _CreateForwardTool(FunctionTool):
     name: str = "create_forward"
-    description: str = "创建一条合并转发消息，用于伪造聊天记录。"
+    description: str = "创建一条合并转发消息，用于伪造聊天记录。每段必须提供 qq 和 text，**强烈建议同时提供 nickname**（否则大概率显示为 QQ 号）。"
     parameters: dict = field(default_factory=lambda: {
         "type": "object",
-        "properties": {"params": {"type": "string", "description": "JSON格式参数"}},
+        "properties": {"params": {"type": "string", "description": "JSON。每项须含 qq/text，nickname 尽量填写"}},
         "required": ["params"],
     })
 
