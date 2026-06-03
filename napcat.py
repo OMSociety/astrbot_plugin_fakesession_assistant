@@ -1,6 +1,7 @@
 """NapCat HTTP API 客户端"""
 from __future__ import annotations
 
+import json
 import time
 
 import aiohttp
@@ -60,8 +61,13 @@ class NapCatClient:
     async def _get_stranger_name(self, qq: str) -> str | None:
         try:
             data = await self._post("/get_stranger_info", {"user_id": int(qq), "no_cache": False})
+            logger.info(f"[FakeSession] get_stranger_info({qq}) response: {json.dumps(data, ensure_ascii=False)[:200]}")
             if data.get("status") == "ok":
                 return data["data"].get("nickname") or data["data"].get("nick")
+            # MODE=astrbot 可能用 retcode
+            if data.get("retcode") == 0:
+                d = data.get("data", {})
+                return d.get("nickname") or d.get("nick")
         except Exception as e:
             logger.warning(f"[FakeSession] get_stranger_info({qq}) 失败: {e}")
         return None
@@ -72,6 +78,11 @@ class NapCatClient:
                                     {"group_id": int(group_id), "user_id": int(qq), "no_cache": False})
             if data.get("status") == "ok":
                 card = data["data"].get("card") or data["data"].get("card_name")
+                if card:
+                    return card
+            if data.get("retcode") == 0:
+                d = data.get("data", {})
+                card = d.get("card") or d.get("card_name")
                 if card:
                     return card
         except Exception as e:
