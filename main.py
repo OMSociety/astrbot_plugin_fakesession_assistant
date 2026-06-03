@@ -81,6 +81,8 @@ class SessionFakerPlugin(Star):
                     new_comps.append(comp)
 
             segments = parse_message(event, raw_components=new_comps)
+            for i, seg in enumerate(segments):
+                logger.info(f"[FakeSession] 段{i+1}: qq={seg.qq} text={seg.text[:30]} images={len(seg.images)}")
             if not segments:
                 yield event.plain_result("未能解析，请检查格式。")
                 return
