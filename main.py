@@ -114,7 +114,15 @@ class _CreateForwardTool(FunctionTool):
         segs = data["segments"] if isinstance(data, dict) else data
         title = data.get("title", "") if isinstance(data, dict) else ""
         from .parser import Segment as Seg
-        segments = [Seg(qq=str(s["qq"]), nickname=s.get("nickname"), text=s.get("text", "")) for s in segs]
+        segments = [Seg(qq=str(s["qq"]), nickname=s.get("nickname"), text=s.get("text", ""),
+                         images=[s["image"]] if s.get("image") else []) for s in segs]
+        # 如果用户消息中附带了图片，追加到最后一个段
+        from astrbot.api.message_components import Image as CompImage
+        for comp in event.message_obj.message:
+            if isinstance(comp, CompImage):
+                url = getattr(comp, "url", "") or getattr(comp, "file", "")
+                if url and segments:
+                    segments[-1].images.append(url)
         nicknames = {}
         for seg in segments:
             nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
