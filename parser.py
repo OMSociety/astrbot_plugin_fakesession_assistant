@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from astrbot.api import logger
 from astrbot.api.message_components import Image, Plain
 
 
@@ -82,8 +83,10 @@ def parse_message(event, raw_components: list | None = None) -> list[Segment]:
     for comp in comps:
         if isinstance(comp, Plain):
             raw_text += comp.text
-        elif isinstance(comp, Image) and hasattr(comp, "url") and comp.url:
-            images.append(comp.url)
+        elif isinstance(comp, Image):
+            url = getattr(comp, "url", "") or getattr(comp, "file", "")
+            if url:
+                images.append(url)
 
     if not raw_text.startswith("伪造消息"):
         return []
@@ -108,4 +111,5 @@ def parse_message(event, raw_components: list | None = None) -> list[Segment]:
         segments[-1].images.append(images[img_idx])
         img_idx += 1
 
+    logger.debug(f"[FakeSession] 解析: {len(blocks)} 段, {len(images)} 张图片, {len(segments)} 个有效段")
     return segments
