@@ -20,7 +20,12 @@ class SessionFakerPlugin(Star):
 
     def _get_napcat(self) -> NapCatClient:
         """每次请求时重新读配置，确保 WebUI 改动即时生效"""
-        cfg = self.context.get_config()
+        raw = self.context.get_config()
+        # WebUI 按 _conf_schema.json 分组存储为嵌套结构，先拍平
+        cfg: dict = {}
+        for section in raw.values():
+            if isinstance(section, dict):
+                cfg.update(section)
         url = cfg.get("napcat_http_url", "http://127.0.0.1:3000")
         token = cfg.get("napcat_token", "")
         timeout = cfg.get("request_timeout", 10)
