@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from astrbot.api.all import *
 from astrbot.api.event import AstrMessageEvent, filter
+from astrbot.api.message_components import Plain
 
 from .builder import build_forward_nodes
 from .napcat import NapCatClient
@@ -25,21 +26,33 @@ class SessionFakerPlugin(Star):
     @filter.command("伪造消息")
     async def fake_forward(self, event: AstrMessageEvent):
         """伪造合并转发消息：/伪造消息 QQ号 内容 \\| QQ号|昵称 内容"""
-        # 从原始消息取完整内容（不用 message 参数，因为 \\| 会被 AstrBot 截断）
-        raw = event.message_str
+        # 从消息链拼接完整文本（不依赖被截断的 message_str）
+        chain_parts = []
+        for comp in event.message_obj.message:
+            if isinstance(comp, Plain):
+                chain_parts.append(comp.text)
+        chain_text = "".join(chain_parts)
+
+        # 掐掉 "/伪造消息" 前缀
         prefix = "/伪造消息"
-        content = raw[len(prefix):].lstrip() if raw.startswith(prefix) else ""
+        if chain_text.startswith(prefix):
+            content = chain_text[len(prefix):].lstrip()
+        else:
+            content = ""
 
         if not content:
+            # DEBUG
+            msg_str = event.message_str or ""
+            raw_msg = event.message_obj.raw_message
+            raw_str = str(raw_msg)[:200] if raw_msg else ""
             yield event.plain_result(
-                "格式：\n"
-                "/伪造消息 QQ号 内容 \\| QQ号|昵称 内容 \\| QQ号|昵称|时间戳 内容\n"
-                "示例：/伪造消息 123456 今天好冷 \\| 654321|小王 确实"
+                f"DEBUG:\nchain_text={repr(chain_text)}\n"
+                f"raw_message={repr(raw_str)}\n"
+                f"message_str={repr(msg_str)}"
             )
             return
 
         # 重建 message_obj 以复用 parser
-        from astrbot.api.message_components import Plain
         fake_text = f"伪造消息{content}"
         event.message_obj.message = [Plain(fake_text)]
         event.message_obj.message_str = fake_text
