@@ -3,9 +3,8 @@ from __future__ import annotations
 import yaml
 from pathlib import Path
 
-from astrbot.api import logger, Context, Star
+from astrbot.api.all import *
 from astrbot.api.event import filter, AstrMessageEvent
-from astrbot.api.all import EventMessageType, register
 
 from .parser import parse_message
 from .napcat import NapCatClient
