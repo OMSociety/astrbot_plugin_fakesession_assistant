@@ -1,6 +1,6 @@
-name: astrbot_plugin_SessionFaker
-desc: 合并转发伪造助手 — 基于 NapCat API 创建仿真合并转发消息，支持自定义昵称、时间戳、@提及和图片
-help: 发送「伪造帮助」获取使用说明
+name: fakesession_assistant
+desc: 基于 NapCat API 的合并转发消息伪造工具。支持自定义发送者、昵称、时间戳、@ 提及和图片，让你的机器人说出任何人想说的话
+author: Slandre & LongMarch
 version: v1.0.0
-author: OMSociety
 repo: https://github.com/OMSociety/astrbot_plugin_fakesession_assistant
+display_name: 合并转发伪造助手
