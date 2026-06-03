@@ -117,15 +117,15 @@ class SessionFakerPlugin(Star):
         if bot is None:
             raise RuntimeError("无法连接 OneBot 适配器")
         ob = _segments_to_onebot(segments, nicknames)
-        msg = event.message_obj
         kw = {"messages": ob}
         if news:
             kw["news"] = news
+        msg = event.message_obj
         if getattr(msg, "group_id", None):
             kw["group_id"] = int(msg.group_id)
             await bot.call_action("send_group_forward_msg", **kw)
         else:
-            kw["user_id"] = int(msg.sender.user_id)
+            kw["user_id"] = int(event.get_sender_id())
             await bot.call_action("send_private_forward_msg", **kw)
 
     # ── LLM Tool ──────────────────────────────────
