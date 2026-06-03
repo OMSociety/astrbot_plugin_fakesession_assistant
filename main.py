@@ -86,10 +86,23 @@ class SessionFakerPlugin(Star):
         logger.info("[FakeSession] 插件已初始化")
 
     def _get_bot(self):
-        """获取 OneBot 客户端（用于直接调 API）"""
+        """获取 OneBot 客户端"""
         if self._adapter is None:
-            self._adapter = self.context.get_platform_inst("aiocqhttp")
-        return self._adapter.get_client()
+            # 尝试多个可能的 platform ID
+            for pid in ["aiocqhttp", "aiocqhttp_adapter", "cqhttp", "onebot"]:
+                inst = self.context.get_platform_inst(pid)
+                if inst and hasattr(inst, "get_client"):
+                    self._adapter = inst
+                    logger.info(f"[FakeSession] 找到 adapter: {pid}")
+                    break
+            if self._adapter is None:
+                # fallback: 遍历所有 platform
+                for star in self.context.get_all_stars():
+                    if hasattr(star, "get_client"):
+                        self._adapter = star
+                        logger.info("[FakeSession] 通过 get_all_stars 找到 adapter")
+                        break
+        return self._adapter.get_client() if self._adapter else None
 
     @filter.command("伪造消息")
     async def fake_forward(self, event: AstrMessageEvent):
@@ -148,6 +161,9 @@ class SessionFakerPlugin(Star):
 
             # 通过 OneBot WS 直接调 send_*_forward_msg（带 news 实现跳转）
             bot = self._get_bot()
+            if bot is None:
+                yield event.plain_result("无法连接 OneBot 适配器，请联系管理员。")
+                return
             ob_messages = _segments_to_onebot(segments, nicknames)
             news = [{"text": url, "prompt": "[分享]" + url.split("//")[-1].split("/")[0], "summary": url, "source": url}]
             msg = event.message_obj
