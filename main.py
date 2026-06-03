@@ -22,32 +22,36 @@ class SessionFakerPlugin(Star):
         self.napcat.set_cache_ttl(cfg.get("nickname_cache_ttl", 300))
         logger.info("[FakeSession] 插件已初始化")
 
-    @event_message_type(EventMessageType.ALL)
-    async def on_message(self, event: AstrMessageEvent):
-        """监听消息，识别「伪造消息」指令并生成合并转发"""
-        if not event.message_str.startswith("伪造消息"):
-            return
-
-        segments = parse_message(event)
-        if not segments:
+    @filter.command("伪造消息")
+    async def fake_forward(self, event: AstrMessageEvent, message: str = ""):
+        """伪造合并转发消息：/伪造消息 QQ号 内容 \\| QQ号|昵称 内容"""
+        if not message.strip():
             yield event.plain_result(
                 "格式：\n"
-                "伪造消息 QQ号 内容 \\| QQ号|昵称 内容 \\| QQ号|昵称|时间戳 内容\n"
-                "示例：伪造消息 123456 今天好冷 \\| 654321|小王 确实 \\| 789012||1717200000 记得加衣"
+                "/伪造消息 QQ号 内容 \\| QQ号|昵称 内容 \\| QQ号|昵称|时间戳 内容\n"
+                "示例：/伪造消息 123456 今天好冷 \\| 654321|小王 确实"
             )
             return
 
-        # 从消息对象直接获取会话信息
+        # 重建 message_obj 以复用 parser（parser 依赖 message_obj.message 遍历）
+        from astrbot.api.message_components import Plain
+        fake_text = f"伪造消息{message}"
+        event.message_obj.message = [Plain(fake_text)]
+        event.message_obj.message_str = fake_text
+
+        segments = parse_message(event)
+        if not segments:
+            yield event.plain_result("未能解析出有效的消息节点，请检查格式。")
+            return
+
         msg = event.message_obj
         group_id: str | None = str(msg.group_id) if getattr(msg, "group_id", None) else None
         user_id: str | None = str(msg.sender.user_id) if hasattr(msg.sender, "user_id") else None
 
-        # 收集昵称
         nicknames: dict[str, str] = {}
         for seg in segments:
-            override = seg.nickname
             nicknames[seg.qq] = await self.napcat.get_nickname(
-                qq=seg.qq, group_id=group_id, override=override
+                qq=seg.qq, group_id=group_id, override=seg.nickname
             )
             for at_qq in seg.at_users:
                 if at_qq not in nicknames:
@@ -55,22 +59,16 @@ class SessionFakerPlugin(Star):
                         qq=at_qq, group_id=group_id
                     )
 
-        # 构建并发送
         nodes = build_forward_nodes(segments, nicknames)
         try:
             result = await self.napcat.send_forward(group_id, user_id, nodes)
-            if result.get("status") == "ok":
-                logger.info("[FakeSession] 合并转发发送成功")
-            else:
+            if result.get("status") != "ok":
                 err_msg = result.get("message") or result.get("wording") or str(result)
                 logger.error(f"[FakeSession] 发送失败: {err_msg}")
                 yield event.plain_result(f"发送失败：{err_msg}")
         except Exception as e:
             logger.error(f"[FakeSession] NapCat 请求异常: {e}")
-            yield event.plain_result(
-                f"NapCat 连接失败：{e}\n"
-                f"请检查 config.yaml 中 napcat_http_url 是否正确，且 NapCat 是否在运行。"
-            )
+            yield event.plain_result(f"NapCat 连接失败：{e}")
 
     @filter.command("伪造帮助")
     async def cmd_help(self, event: AstrMessageEvent):
@@ -78,7 +76,7 @@ class SessionFakerPlugin(Star):
         yield event.plain_result(
             "📋 合并转发伪造助手 v1.0\n\n"
             "【语法】\n"
-            "伪造消息 QQ号 内容 \\| QQ号|昵称 内容 \\| QQ号|昵称|时间戳(10位Unix) 内容\n\n"
+            "/伪造消息 QQ号 内容 \\| QQ号|昵称 内容 \\| QQ号|昵称|时间戳(10位Unix) 内容\n\n"
             "【说明】\n"
             "- \\| 分割不同发言段\n"
             "- | 分割段内的 QQ/昵称/时间戳（昵称和时间戳均可省略）\n"
@@ -86,9 +84,9 @@ class SessionFakerPlugin(Star):
             "- @某人：在内容里写 @QQ号\n"
             "- 昵称默认从QQ自动获取，填写后强制覆盖\n\n"
             "【示例】\n"
-            "伪造消息 123456 今天天气真不错\n"
-            "伪造消息 123456 你好 \\| 654321|小王 你也好\n"
-            "伪造消息 123456|老张|1717200000 开会了 \\| 789012 收到"
+            "/伪造消息 123456 今天天气真不错\n"
+            "/伪造消息 123456 你好 \\| 654321|小王 你也好\n"
+            "/伪造消息 123456|老张|1717200000 开会了 \\| 789012 收到"
         )
 
     async def terminate(self):
