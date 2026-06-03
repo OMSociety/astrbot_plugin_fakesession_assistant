@@ -95,6 +95,10 @@ class NapCatClient:
             body["group_id"] = group_id
         if user_id:
             body["user_id"] = user_id
+        # 外层摘要用第一个节点的昵称
+        if messages:
+            first = messages[0].get("data", {})
+            body["prompt"] = f"{first.get('nickname', '')} 的聊天记录"
         try:
             return await self._post("/send_forward_msg", body)
         except Exception as e:

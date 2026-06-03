@@ -1,15 +1,11 @@
 """合并转发伪造助手 — main.py"""
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 from astrbot.api.all import *
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import Plain
+from astrbot.api.message_components import Image as CompImage
+from astrbot.api.message_components import Node, Nodes, Plain
 
-from .builder import build_forward_nodes
-from .napcat import NapCatClient
 from .parser import parse_message
 
 
@@ -17,37 +13,11 @@ from .parser import parse_message
 class SessionFakerPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        self._napcat: NapCatClient | None = None
         logger.info("[FakeSession] 插件已初始化")
-
-    def _get_napcat(self) -> NapCatClient:
-        """每次请求时重新读配置并初始化 NapCat 客户端"""
-        config_path = Path("data/config/fakesession_assistant_config.json")
-        cfg: dict = {}
-        if config_path.exists():
-            try:
-                raw = json.loads(config_path.read_text(encoding="utf-8-sig"))
-                for section in raw.values():
-                    if isinstance(section, dict):
-                        cfg.update(section)
-            except Exception:
-                pass
-
-        url = cfg.get("napcat_http_url", "http://127.0.0.1:3000")
-        token = cfg.get("napcat_token", "")
-        timeout = cfg.get("request_timeout", 10)
-        ttl = cfg.get("nickname_cache_ttl", 300)
-
-        if self._napcat is None or self._napcat.http_url != url:
-            self._napcat = NapCatClient(http_url=url, token=token, timeout=timeout)
-            self._napcat.set_cache_ttl(ttl)
-            logger.info(f"[FakeSession] NapCat: {url}")
-        return self._napcat
 
     @filter.command("伪造消息")
     async def fake_forward(self, event: AstrMessageEvent):
         """伪造合并转发：/伪造消息 QQ号 内容 \\| QQ号|昵称 内容"""
-        # 从消息链拼接完整文本
         chain_text = "".join(
             comp.text for comp in event.message_obj.message if isinstance(comp, Plain)
         )
@@ -61,7 +31,6 @@ class SessionFakerPlugin(Star):
             )
             return
 
-        # 重建消息对象以复用 parser
         fake_text = f"伪造消息{content}"
         event.message_obj.message = [Plain(fake_text)]
         event.message_obj.message_str = fake_text
@@ -71,36 +40,22 @@ class SessionFakerPlugin(Star):
             yield event.plain_result("未能解析，请检查格式。")
             return
 
-        # 获取会话信息
-        msg = event.message_obj
-        group_id = str(msg.group_id) if getattr(msg, "group_id", None) else None
-        user_id = str(msg.sender.user_id) if hasattr(msg.sender, "user_id") else None
-
-        # 收集昵称
-        napcat = self._get_napcat()
-        nicknames: dict[str, str] = {}
+        # 用 AstrBot 原生 Node/Nodes 构建合并转发（走 WebSocket，无需 HTTP）
+        nodes_list = []
         for seg in segments:
-            nicknames[seg.qq] = await napcat.get_nickname(
-                qq=seg.qq, group_id=group_id, override=seg.nickname
-            )
-            for at_qq in seg.at_users:
-                if at_qq not in nicknames:
-                    nicknames[at_qq] = await napcat.get_nickname(qq=at_qq, group_id=group_id)
+            node_content = [Plain(seg.text)]
+            for img_url in seg.images:
+                node_content.append(CompImage.fromURL(img_url))
+            nodes_list.append(Node(
+                uin=int(seg.qq),
+                name=seg.nickname or f"用户{seg.qq}",
+                content=node_content,
+            ))
 
-        # 发送
-        try:
-            result = await napcat.send_forward(group_id, user_id, build_forward_nodes(segments, nicknames))
-            if result.get("status") != "ok":
-                err = result.get("message") or result.get("wording") or str(result)
-                logger.error(f"[FakeSession] 发送失败: {err}")
-                yield event.plain_result(f"发送失败：{err}")
-        except Exception as e:
-            logger.error(f"[FakeSession] NapCat 异常: {e}")
-            yield event.plain_result(f"NapCat 连接失败：{e}")
+        yield event.chain_result([Nodes(nodes=nodes_list)])
 
     @filter.command("伪造帮助")
     async def cmd_help(self, event: AstrMessageEvent):
-        """显示帮助"""
         yield event.plain_result(
             "📋 合并转发伪造助手 v1.0\n\n"
             "【语法】\n"
