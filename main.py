@@ -83,6 +83,22 @@ def _segments_to_onebot(segments, nicknames: dict[str, str]) -> list:
 class SessionFakerPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
+        from astrbot.core.provider.func_tool_manager import FuncTool
+        context.add_llm_tools(FuncTool(
+            name="create_forward",
+            description="创建一条合并转发消息，用于伪造聊天记录或展示对话。参数: JSON 字符串，包含 segments（数组，每项 qq/nickname/text）和可选的 title（有 title 则外层卡片显示该标题）。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "params": {
+                        "type": "string",
+                        "description": 'JSON 字符串，例如 {"segments":[{"qq":"123456","nickname":"老王","text":"你好"},{"qq":"654321","nickname":"小李","text":"你好呀"}],"title":"私聊"}。title 可选，不填则无自定义外表。'
+                    }
+                },
+                "required": ["params"],
+            },
+            handler=self.create_forward,
+        ))
         logger.info("[FakeSession] 插件已初始化")
 
     def _get_bot(self, event: AstrMessageEvent):
