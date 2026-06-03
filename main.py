@@ -1,6 +1,8 @@
 """合并转发伪造助手 — main.py"""
 from __future__ import annotations
 
+import json
+
 from astrbot.api.all import *
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import Image, Node, Nodes, Plain
@@ -93,6 +95,25 @@ class SessionFakerPlugin(Star):
             return inst2.get_client()
         return None
 
+    async def _send_forward(self, event, segments, nicknames, news=None):
+        """核心：通过 OneBot WS 发送合并转发"""
+        bot = self._get_bot(event)
+        if bot is None:
+            raise RuntimeError("无法连接 OneBot 适配器")
+        ob = _segments_to_onebot(segments, nicknames)
+        msg = event.message_obj
+        kw = {"messages": ob}
+        if news:
+            kw["news"] = news
+        if getattr(msg, "group_id", None):
+            kw["group_id"] = int(msg.group_id)
+            await bot.call_action("send_group_forward_msg", **kw)
+        else:
+            kw["user_id"] = int(msg.sender.user_id)
+            await bot.call_action("send_private_forward_msg", **kw)
+
+    # ── LLM Tool ──────────────────────────────────
+
     @filter.command("伪造消息")
     async def fake_forward(self, event: AstrMessageEvent):
         logger.info("[FakeSession] === 伪造消息 ===")
@@ -116,7 +137,6 @@ class SessionFakerPlugin(Star):
 
     @filter.command("伪造外表")
     async def fake_appearance(self, event: AstrMessageEvent):
-        """伪造外表：/伪造外表 QQ|昵称|消息 \\| ... \\\\| 标题"""
         logger.info("[FakeSession] === 伪造外表 ===")
         try:
             content = _extract_content(event.message_obj.message, "/伪造外表")
@@ -146,21 +166,62 @@ class SessionFakerPlugin(Star):
             for seg in segments:
                 nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
 
-            bot = self._get_bot(event)
-            if bot is None:
-                yield event.plain_result("无法连接 OneBot 适配器。")
-                return
-            ob_messages = _segments_to_onebot(segments, nicknames)
-            news = [{"text": title, "prompt": title, "summary": "", "source": ""}]
-            msg = event.message_obj
-            if getattr(msg, "group_id", None):
-                await bot.call_action("send_group_forward_msg", group_id=int(msg.group_id), messages=ob_messages, news=news)
-            else:
-                await bot.call_action("send_private_forward_msg", user_id=int(msg.sender.user_id), messages=ob_messages, news=news)
+            await self._send_forward(event, segments, nicknames, news=[{"text": title, "prompt": title, "summary": "", "source": ""}])
             event.stop_event()
         except Exception as e:
             logger.error(f"[FakeSession] 伪造外表异常: {e}", exc_info=True)
             yield event.plain_result(f"内部错误：{e}")
+
+    # ── LLM 可调用工具 ────────────────────────────
+
+    async def create_forward(self, event: AstrMessageEvent, params: str):
+        """创建合并转发消息。参数: JSON 字符串 {"segments":[{"qq":"123","nickname":"老王","text":"你好"},...],"title":"可选标题（有则为伪造外表）"}"""
+        try:
+            data = json.loads(params) if isinstance(params, str) else params
+            segs = data["segments"]
+            title = data.get("title", "")
+
+            # 构造简易 Segment 对象
+            from .parser import Segment as Seg
+            segments = []
+            for s in segs:
+                segments.append(Seg(qq=str(s["qq"]), nickname=s.get("nickname"), text=s.get("text", "")))
+
+            nicknames = {}
+            for seg in segments:
+                nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
+
+            news = [{"text": title, "prompt": title, "summary": "", "source": ""}] if title else None
+            await self._send_forward(event, segments, nicknames, news=news)
+            return f"已发送合并转发（{len(segments)} 条消息）"
+        except Exception as e:
+            logger.error(f"[FakeSession] LLM 工具异常: {e}", exc_info=True)
+            return f"发送失败：{e}"
+
+    # ── 注册 LLM 工具 ─────────────────────────────
+
+    def __init_llm_tools__(self):
+        """插件加载时自动注册 LLM 工具"""
+        from astrbot.core.provider.func_tool_manager import FuncTool
+        self.context.add_llm_tools([
+            FuncTool(
+                name="create_forward",
+                description="创建一条合并转发消息，用于伪造聊天记录或展示对话。参数: JSON 字符串，包含 segments（数组，每项 qq/nickname/text）和可选的 title（有 title 则外层卡片显示该标题）。",
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "params": {
+                            "type": "string",
+                            "description": 'JSON 字符串，例如 {"segments":[{"qq":"123456","nickname":"老王","text":"你好"},{"qq":"654321","nickname":"小李","text":"你好呀"}],"title":"私聊"}。title 可选，不填则无自定义外表。'
+                        }
+                    },
+                    "required": ["params"]
+                },
+                handler=self.create_forward,
+            )
+        ])
+
+    # ── 普通命令 ───────────────────────────────────
 
     @filter.command("伪造帮助")
     async def cmd_help(self, event: AstrMessageEvent):
