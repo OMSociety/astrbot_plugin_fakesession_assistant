@@ -14,7 +14,21 @@ from .parser import parse_message
 _PLUGIN_REF = None
 
 
-async def _fetch_nickname(qq: str) -> str | None:
+async def _fetch_nickname(qq: str, event=None) -> str | None:
+    # 优先用 OneBot 客户端查（AstrBot 已有 WS 连接）
+    if event and _PLUGIN_REF:
+        try:
+            bot = _PLUGIN_REF._get_bot(event)
+            if bot:
+                data = await bot.call_action("get_stranger_info", user_id=int(qq), no_cache=False)
+                if data.get("status") == "ok" or data.get("retcode") == 0:
+                    info = data.get("data", {})
+                    name = info.get("nickname") or info.get("nick")
+                    if name:
+                        return name
+        except Exception:
+            pass
+    # 备选：外部 API
     import aiohttp
     try:
         async with aiohttp.ClientSession() as s:
@@ -31,10 +45,10 @@ async def _fetch_nickname(qq: str) -> str | None:
     return None
 
 
-async def _build_nodes(segments) -> Nodes:
+async def _build_nodes(segments, event=None) -> Nodes:
     nodes = []
     for seg in segments:
-        nickname = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
+        nickname = seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
         content: list = [Plain(seg.text)] if seg.text else []
         for img_url in seg.images:
             content.append(Image.fromURL(img_url))
@@ -102,7 +116,7 @@ class _CreateForwardTool(FunctionTool):
         segments = [Seg(qq=str(s["qq"]), nickname=s.get("nickname"), text=s.get("text", "")) for s in segs]
         nicknames = {}
         for seg in segments:
-            nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
+            nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
         news = [{"text": title, "prompt": title, "summary": "", "source": ""}] if title else None
         await _PLUGIN_REF._send_forward(event, segments, nicknames, news=news)
         return f"已发送合并转发（{len(segments)} 条消息）"
@@ -159,7 +173,7 @@ class SessionFakerPlugin(Star):
             if not segments:
                 yield event.plain_result("未能解析，请检查格式。")
                 return
-            yield event.chain_result([await _build_nodes(segments)])
+            yield event.chain_result([await _build_nodes(segments, event)])
         except Exception as e:
             logger.error(f"[FakeSession] 异常: {e}", exc_info=True)
             yield event.plain_result(f"内部错误：{e}")
@@ -191,7 +205,7 @@ class SessionFakerPlugin(Star):
                 return
             nicknames = {}
             for seg in segments:
-                nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
+                nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
             await self._send_forward(event, segments, nicknames, news=[{"text": title, "prompt": title, "summary": "", "source": ""}])
             event.stop_event()
         except Exception as e:
