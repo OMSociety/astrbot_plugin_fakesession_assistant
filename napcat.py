@@ -60,7 +60,7 @@ class NapCatClient:
             if data.get("status") == "ok":
                 return data["data"].get("nickname") or data["data"].get("nick")
         except Exception as e:
-            logger.warning(f"[SessionFaker] get_stranger_info({qq}) 失败: {e}")
+            logger.warning(f"[FakeSession] get_stranger_info({qq}) 失败: {e}")
         return None
 
     async def _get_group_card(self, group_id: str, qq: str) -> str | None:
@@ -72,7 +72,7 @@ class NapCatClient:
                 if card:
                     return card
         except Exception as e:
-            logger.debug(f"[SessionFaker] get_group_member_info({group_id}, {qq}) 失败: {e}")
+            logger.debug(f"[FakeSession] get_group_member_info({group_id}, {qq}) 失败: {e}")
         return None
 
     # ── 健康检查 ──────────────────────────────
@@ -92,4 +92,8 @@ class NapCatClient:
             body["group_id"] = group_id
         if user_id:
             body["user_id"] = user_id
-        return await self._post("/send_forward_msg", body)
+        try:
+            return await self._post("/send_forward_msg", body)
+        except Exception as e:
+            logger.error(f"[FakeSession] send_forward_msg 请求失败: {e}")
+            raise

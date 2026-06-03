@@ -60,39 +60,51 @@ def _parse_segment(block: str) -> Segment | None:
 
 
 def parse_message(event) -> list[Segment]:
-    """从 AstrMessageEvent 解析出完整消息段列表"""
+    """从 AstrMessageEvent 解析出完整消息段列表，图片按位置分配到对应段"""
     raw_text = ""
-    images: list[str] = []
+    # 收集文本和图片，并记录每个图片在 Plain 流中的插入位置
+    images_at: list[tuple[int, str]] = []  # (plain_offset, url)
+    text_offset = 0
 
     if hasattr(event.message_obj, 'message'):
         for comp in event.message_obj.message:
             if isinstance(comp, Plain):
                 raw_text += comp.text
+                text_offset += len(comp.text)
             elif isinstance(comp, Image) and hasattr(comp, 'url') and comp.url:
-                images.append(comp.url)
+                images_at.append((text_offset, comp.url))
 
     if not raw_text.startswith("伪造消息"):
         return []
 
-    raw_text = raw_text[len("伪造消息"):].lstrip()
+    prefix_len = len("伪造消息")
+    raw_text = raw_text[prefix_len:].lstrip()
+
+    # 图片的文本偏移量需要减去前缀长度
+    images_at = [(offset - prefix_len, url) for offset, url in images_at if offset > prefix_len]
+
     blocks = _split_raw_text(raw_text)
 
     segments: list[Segment] = []
-    img_idx = 0
+    block_start_in_raw = 0
 
     for block in blocks:
+        # 找到这个 block 在 raw_text 中的位置
+        block_start = raw_text.index(block, block_start_in_raw)
+        block_end = block_start + len(block)
+        block_start_in_raw = block_end
+
         seg = _parse_segment(block)
         if seg is None:
-            logger.debug(f"[SessionFaker] 跳过无法解析的段: {block[:40]}...")
+            logger.debug(f"[FakeSession] 跳过无法解析的段: {block[:40]}...")
             continue
 
-        # 如果有图片，按顺序分配到有实际内容的段
-        # 简单策略：把全部图片挂到最后一个段（或第一个有内容的段）
+        # 把落在当前 block 范围内的图片分配到当前段
+        for offset, url in images_at:
+            if block_start <= offset < block_end:
+                seg.images.append(url)
+
         segments.append(seg)
 
-    if images:
-        # 图片分配到第一个段
-        segments[0].images = images
-
-    logger.debug(f"[SessionFaker] 解析到 {len(segments)} 个消息段")
+    logger.debug(f"[FakeSession] 解析到 {len(segments)} 个消息段")
     return segments

@@ -1,11 +1,11 @@
 """合并转发伪造助手 — main.py"""
 from __future__ import annotations
-import os
 import yaml
 from pathlib import Path
 
-from astrbot.api.all import *
+from astrbot.api import logger, Context, Star
 from astrbot.api.event import filter, AstrMessageEvent
+from astrbot.api.all import EventMessageType, register
 
 from .parser import parse_message
 from .napcat import NapCatClient
@@ -15,14 +15,20 @@ PLUGIN_DIR = Path(__file__).parent
 
 
 def _load_config() -> dict:
-    config_path = PLUGIN_DIR / "config.yaml"
-    if not config_path.exists():
-        return {}
-    with open(config_path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+    """加载 config.yaml，优先读 data 目录，不存在则读插件目录"""
+    data_dir = Path("data/config")
+    data_config = data_dir / "fakesession_config.yaml"
+    if data_config.exists():
+        with open(data_config, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    plugin_config = PLUGIN_DIR / "config.yaml"
+    if plugin_config.exists():
+        with open(plugin_config, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    return {}
 
 
-@register("astrbot_plugin_SessionFaker", "OMSociety", "合并转发伪造助手", "1.0.0")
+@register("fakesession_assistant", "Slandre & LongMarch", "合并转发伪造助手", "1.0.0")
 class SessionFakerPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
@@ -34,12 +40,12 @@ class SessionFakerPlugin(Star):
         )
         self.napcat.set_cache_ttl(cfg.get("nickname_cache_ttl", 300))
         self.nickname_override: dict[str, str] = cfg.get("nickname_override", {})
-        logger.info("[SessionFaker] 插件已初始化")
+        logger.info("[FakeSession] 插件已初始化")
 
     @event_message_type(EventMessageType.ALL)
     async def on_message(self, event: AstrMessageEvent):
-        message_text = event.message_str
-        if not message_text.startswith("伪造消息"):
+        """监听消息，识别「伪造消息」指令并生成合并转发"""
+        if not event.message_str.startswith("伪造消息"):
             return
 
         segments = parse_message(event)
@@ -51,14 +57,10 @@ class SessionFakerPlugin(Star):
             )
             return
 
-        # 确定会话类型
-        group_id: str | None = None
-        user_id: str | None = None
-        scene_info = event.get_platform_event()
-        if hasattr(scene_info, 'group_id') and scene_info.group_id:
-            group_id = str(scene_info.group_id)
-        elif hasattr(scene_info, 'sender_id'):
-            user_id = str(scene_info.sender_id)
+        # 从消息对象直接获取会话信息
+        msg = event.message_obj
+        group_id: str | None = str(msg.group_id) if getattr(msg, 'group_id', None) else None
+        user_id: str | None = str(msg.sender.user_id) if hasattr(msg.sender, 'user_id') else None
 
         # 收集昵称
         nicknames: dict[str, str] = {}
@@ -67,7 +69,6 @@ class SessionFakerPlugin(Star):
             nicknames[seg.qq] = await self.napcat.get_nickname(
                 qq=seg.qq, group_id=group_id, override=override
             )
-            # 也顺带查 @ 用户的昵称
             for at_qq in seg.at_users:
                 if at_qq not in nicknames:
                     nicknames[at_qq] = await self.napcat.get_nickname(
@@ -79,17 +80,21 @@ class SessionFakerPlugin(Star):
         try:
             result = await self.napcat.send_forward(group_id, user_id, nodes)
             if result.get("status") == "ok":
-                logger.info(f"[SessionFaker] 合并转发发送成功")
+                logger.info("[FakeSession] 合并转发发送成功")
             else:
                 err_msg = result.get("message") or result.get("wording") or str(result)
-                logger.error(f"[SessionFaker] 发送失败: {err_msg}")
+                logger.error(f"[FakeSession] 发送失败: {err_msg}")
                 yield event.plain_result(f"发送失败：{err_msg}")
         except Exception as e:
-            logger.error(f"[SessionFaker] NapCat 请求异常: {e}")
-            yield event.plain_result(f"NapCat 连接失败：{e}\n请检查 config.yaml 中 napcat_http_url 是否正确，且 NapCat 是否在运行。")
+            logger.error(f"[FakeSession] NapCat 请求异常: {e}")
+            yield event.plain_result(
+                f"NapCat 连接失败：{e}\n"
+                f"请检查 config.yaml 中 napcat_http_url 是否正确，且 NapCat 是否在运行。"
+            )
 
     @filter.command("伪造帮助")
     async def cmd_help(self, event: AstrMessageEvent):
+        """显示插件帮助"""
         yield event.plain_result(
             "📋 合并转发伪造助手 v1.0\n\n"
             "【语法】\n"
