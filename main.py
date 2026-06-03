@@ -136,7 +136,6 @@ class SessionFakerPlugin(Star):
                 yield event.plain_result("格式错误，内层消息和外层描述都不能为空")
                 return
 
-            # 解析内层
             new_comps = _rebuild_components(event.message_obj.message, f"伪造消息{inner}")
             segments = parse_message(event, raw_components=new_comps)
             if not segments:
@@ -147,24 +146,23 @@ class SessionFakerPlugin(Star):
             for seg in segments:
                 nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
 
-            # 解析外层：标题|摘要
             outer_parts = outer.split("|", 1)
             title = outer_parts[0].strip()
-            summary = outer_parts[1].strip() if len(outer_parts) > 1 else f"{nicknames.get(segments[0].qq, '')}: {segments[0].text[:20] if segments else ''}"
+            summary = outer_parts[1].strip() if len(outer_parts) > 1 else nicknames.get(segments[0].qq, "")
+            prompt = title if not summary else title + chr(10) + summary
 
-            # 通过 OneBot WS 发送
             bot = self._get_bot(event)
             if bot is None:
                 yield event.plain_result("无法连接 OneBot 适配器。")
                 return
             ob_messages = _segments_to_onebot(segments, nicknames)
+            news = [{"text": title, "prompt": prompt, "summary": summary, "source": ""}]
             msg = event.message_obj
             if getattr(msg, "group_id", None):
-                await bot.call_action("send_group_forward_msg", group_id=int(msg.group_id), messages=ob_messages,
-                                      news=[{"text": title, "prompt": title, "summary": summary, "source": ""}])
+                await bot.call_action("send_group_forward_msg", group_id=int(msg.group_id), messages=ob_messages, news=news)
             else:
-                await bot.call_action("send_private_forward_msg", user_id=int(msg.sender.user_id), messages=ob_messages,
-                                      news=[{"text": title, "prompt": title, "summary": summary, "source": ""}])
+                await bot.call_action("send_private_forward_msg", user_id=int(msg.sender.user_id), messages=ob_messages, news=news)
+            yield event.plain_result("\u200b")
         except Exception as e:
             logger.error(f"[FakeSession] 伪造外表异常: {e}", exc_info=True)
             yield event.plain_result(f"内部错误：{e}")
