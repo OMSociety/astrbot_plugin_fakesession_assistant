@@ -23,9 +23,14 @@ class SessionFakerPlugin(Star):
         logger.info("[FakeSession] 插件已初始化")
 
     @filter.command("伪造消息")
-    async def fake_forward(self, event: AstrMessageEvent, message: str = ""):
+    async def fake_forward(self, event: AstrMessageEvent):
         """伪造合并转发消息：/伪造消息 QQ号 内容 \\| QQ号|昵称 内容"""
-        if not message.strip():
+        # 从原始消息取完整内容（不用 message 参数，因为 \\| 会被 AstrBot 截断）
+        raw = event.message_str
+        prefix = "/伪造消息"
+        content = raw[len(prefix):].lstrip() if raw.startswith(prefix) else ""
+
+        if not content:
             yield event.plain_result(
                 "格式：\n"
                 "/伪造消息 QQ号 内容 \\| QQ号|昵称 内容 \\| QQ号|昵称|时间戳 内容\n"
@@ -35,14 +40,13 @@ class SessionFakerPlugin(Star):
 
         # 重建 message_obj 以复用 parser
         from astrbot.api.message_components import Plain
-        fake_text = f"伪造消息{message}"
+        fake_text = f"伪造消息{content}"
         event.message_obj.message = [Plain(fake_text)]
         event.message_obj.message_str = fake_text
-        logger.info(f"[FakeSession] DEBUG message={repr(message)}")
 
         segments = parse_message(event)
         if not segments:
-            yield event.plain_result(f"未能解析，原始参数: {message[:100]}")
+            yield event.plain_result(f"未能解析，原始内容: {content[:100]}")
             return
 
         msg = event.message_obj
