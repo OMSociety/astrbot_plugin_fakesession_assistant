@@ -21,6 +21,7 @@ class SessionFakerPlugin(Star):
     def _get_napcat(self) -> NapCatClient:
         """每次请求时重新读配置并初始化 NapCat 客户端"""
         raw = self._context.get_config()
+        logger.info(f"[FakeSession] raw config: {raw}")
         # WebUI 按 _conf_schema.json 分组存储为嵌套 dict，先拍平
         cfg: dict = {}
         for section in raw.values():
