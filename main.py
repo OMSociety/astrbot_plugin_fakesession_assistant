@@ -93,7 +93,7 @@ class _CreateForwardTool(FunctionTool):
         "required": ["params"],
     })
 
-    async def execute(self, event: AstrMessageEvent, params: str = "") -> str:
+    async def call(self, event: AstrMessageEvent, params: str = "") -> str:
         data = json.loads(params)
         segs = data["segments"]
         title = data.get("title", "")
