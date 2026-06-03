@@ -12,7 +12,6 @@ from astrbot.api.message_components import Image, Plain
 class Segment:
     qq: str
     nickname: str | None = None
-    timestamp: int | None = None
     text: str = ""
     images: list[str] = field(default_factory=list)
     at_users: list[str] = field(default_factory=list)
@@ -49,20 +48,11 @@ def _parse_segment(block: str) -> Segment | None:
         seg.text = parts[1].strip()
         return seg
 
+    # len >= 3: QQ|nickname|text 或 QQ||text
     second = parts[1].strip()
-    if second == "":
-        if re.match(r"^\d{10}$", parts[2].strip()):
-            seg.timestamp = int(parts[2].strip())
-            seg.text = "|".join(parts[3:]).strip() if len(parts) > 3 else ""
-        else:
-            seg.text = "|".join(parts[2:]).strip()
-    elif re.match(r"^\d{10}$", second):
-        seg.timestamp = int(second)
-        seg.text = "|".join(parts[2:]).strip()
-    else:
+    if second:
         seg.nickname = second
-        seg.text = "|".join(parts[2:]).strip()
-
+    seg.text = "|".join(parts[2:]).strip()
     return seg
 
 

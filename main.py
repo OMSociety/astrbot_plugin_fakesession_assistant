@@ -45,7 +45,7 @@ async def _fetch_nickname(qq: str, event=None) -> str | None:
     return None
 
 
-async def _build_nodes(segments, event=None) -> Nodes:
+async def _build_nodes(segments: list, event: AstrMessageEvent | None = None) -> Nodes:
     nodes = []
     for seg in segments:
         nickname = seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
