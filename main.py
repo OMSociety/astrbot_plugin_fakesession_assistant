@@ -150,18 +150,26 @@ class SessionFakerPlugin(Star):
             for seg in segments:
                 nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq) or f"QQ{seg.qq}"
 
-            # 通过 OneBot WS 直接调 send_*_forward_msg（带 news 实现跳转）
+            # 通过 OneBot WS 调 send_*_forward_msg（末尾加 share 节点实现跳转）
             bot = self._get_bot(event)
             if bot is None:
                 yield event.plain_result("无法连接 OneBot 适配器，请联系管理员。")
                 return
             ob_messages = _segments_to_onebot(segments, nicknames)
-            news = [{"text": url, "prompt": "[分享]" + url.split("//")[-1].split("/")[0], "summary": url, "source": url}]
+            # 在末尾追加一个 share 类型节点（QQ 分享卡片，自动跳转）
+            ob_messages.append({
+                "type": "node",
+                "data": {
+                    "user_id": int(segments[0].qq) if segments else 2854196310,
+                    "nickname": "分享",
+                    "content": [{"type": "share", "data": {"url": url, "title": url.split("/")[-1][:30] or "链接", "content": url[:50]}}],
+                },
+            })
             msg = event.message_obj
             if getattr(msg, "group_id", None):
-                await bot.call_action("send_group_forward_msg", group_id=int(msg.group_id), messages=ob_messages, news=news)
+                await bot.call_action("send_group_forward_msg", group_id=int(msg.group_id), messages=ob_messages)
             else:
-                await bot.call_action("send_private_forward_msg", user_id=int(msg.sender.user_id), messages=ob_messages, news=news)
+                await bot.call_action("send_private_forward_msg", user_id=int(msg.sender.user_id), messages=ob_messages)
         except Exception as e:
             logger.error(f"[FakeSession] 伪造链接异常: {e}", exc_info=True)
             yield event.plain_result(f"内部错误：{e}")
