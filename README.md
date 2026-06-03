@@ -1,65 +1,144 @@
+# 合并转发伪造助手 SessionFaker
 
-</div>
+[![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant)
+[![AstrBot](https://img.shields.io/badge/AstrBot-%E2%89%A5v4-green.svg)](https://github.com/AstrBotDevs/AstrBot)
+[![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
-<div align="center">
+基于 NapCat API 的合并转发消息伪造工具。支持自定义发送者、昵称、时间戳、@ 提及和图片，让你的机器人说出任何人想说的话。
 
-![:name](https://count.getloli.com/@SessionFaker?name=SessionFaker&theme=booru-lewd&padding=7&offset=0&align=top&scale=1&pixelated=1&darkmode=auto)
+> 本项目由 AI 编写
 
-</div>
+[快速开始](#-快速开始) • [使用说明](#-使用说明) • [配置项](#-配置项说明) • [架构](#-架构)
 
-# 伪造转发消息插件
+---
 
-一个用于AstrBot的插件，可以创建包含多个用户发言的伪造转发消息，支持自动获取QQ昵称。
+## 📖 功能概览
 
-## 功能特点
+### 合并转发伪造
+一句话伪造多人聊天记录的转发消息：
 
-- 创建多用户的转发消息
-- 自动获取QQ用户的真实昵称
-- 简单的命令格式，易于使用
-- 高度自定义的消息内容
+- 👤 **自定义发送者** — 支持任意 QQ 号作为发送者
+- 🏷️ **昵称映射** — 自动从 QQ 获取真实昵称，群聊优先取群名片；支持手动覆盖
+- ⏰ **时间戳伪造** — 每条消息可指定 Unix 时间戳（可选）
+- 🖼️ **图片支持** — 消息中附带图片，自动分配到对应段
+- @ **提及支持** — 内容中 `@QQ号` 自动转为 @ 提及
+- 📨 **群聊 & 私聊** — 自动识别会话类型，无需手写参数
 
-## 使用方法
+---
 
-### 基本格式
+## 🚀 快速开始
+
+### 前置条件
+- ✅ AstrBot ≥ v4
+- ✅ NapCat 已运行且 HTTP API 可用（默认端口 3000）
+
+### 第一步：配置 NapCat 连接
+
+编辑 `config.yaml`，填入你的 NapCat HTTP API 地址：
+
+```yaml
+napcat_http_url: "http://127.0.0.1:3000"  # NapCat HTTP 地址
+napcat_token: ""                            # 如启用了 token 认证则填写
+```
+
+### 第二步：安装插件
+
+**方式一：插件市场**
+- AstrBot WebUI → 插件市场 → 搜索 `SessionFaker`
+
+**方式二：手动安装**
+- 将插件文件夹放入 `/AstrBot/data/plugins/`
+- 重载插件
+
+### 依赖
+核心依赖已集成在 AstrBot 环境中，无需额外安装。
+
+---
+
+## 📝 使用说明
+
+### 基本语法
 
 ```
-伪造消息 QQ号 内容 | QQ号 内容 | ...
+伪造消息 QQ号 内容 \| QQ号|昵称 内容 \| QQ号|昵称|时间戳 内容
 ```
 
-每个消息节点格式为：`QQ号 内容`，节点之间用 `|` 符号分隔。
+| 符号 | 作用 |
+|------|------|
+| `\|` | 分割不同发言段 |
+| `|` | 段内分割 QQ号 / 昵称 / 时间戳 |
 
 ### 示例
 
-#### 基本文本消息：
-
 ```
-伪造消息 123456789 你好，这是第一条消息 | 987654321 这是第二条消息回复 | 123456789 谢谢你的回复！ |
-```
+伪造消息 123456 今天天气真不错
 
-#### 带图片的消息：
+伪造消息 123456 你好 \| 654321|小王 你也好啊
 
-```
-伪造消息 123456789 第一条消息[图片] | 987654321 第二条消息 | 123456789 第三条消息[图片][图片] |
+伪造消息 123456|老张|1717200000 开会了 \| 789012 收到
 ```
 
-## 工作原理
+### 功能细节
 
-1. 插件监听所有包含"伪造消息"的消息
-2. 解析消息格式，提取QQ号和内容
-3. 通过API获取真实昵称
-4. 创建转发消息节点
-5. 发送合并后的转发消息
+| 能力 | 写法 | 说明 |
+|------|------|------|
+| 昵称自动 | `123456 内容` | 自动从 QQ 获取（群聊优先群名片） |
+| 昵称覆盖 | `123456\|老王 内容` | 强制使用指定昵称 |
+| 时间戳 | `123456\|\|1717200000 内容` | 自定义 Unix 秒级时间戳 |
+| @ 提及 | `@789012 说得对` | 在内容中 @ 其他人 |
+| 图片 | `123456 看看这个[图片]` | 随消息附带图片 |
 
-## 作者
+---
 
-- Jason.Joestar
+## ⚙️ 配置项说明
 
-## 免责声明
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `napcat_http_url` | string | `http://127.0.0.1:3000` | NapCat HTTP API 地址 |
+| `napcat_token` | string | `""` | NapCat WebUI token（可选） |
+| `request_timeout` | int | `10` | HTTP 请求超时（秒） |
+| `nickname_cache_ttl` | int | `300` | 昵称缓存有效期（秒），0=不缓存 |
+| `nickname_override` | dict | `{}` | 手动昵称映射，格式：`QQ号: 昵称` |
 
-本插件仅供学习和技术研究使用。使用者应当遵守相关法律法规，不得用于非法用途。使用本插件进行的任何行为及其后果，包括但不限于冒充他人、传播虚假信息等，均与插件作者无关。作者不对因使用本插件而产生的任何直接或间接损失负责。
+---
 
-使用本插件即表示您已阅读并同意此免责声明。
+## 🏗️ 架构
 
-## 许可证
+```
+main.py      ← 命令入口 + 事件监听 + 对话类型判断
+parser.py    ← \| 切段 → 拆 QQ/昵称/时间/内容/@/图片
+napcat.py    ← NapCat HTTP 客户端（get_stranger_info / get_group_member_info / send_forward_msg）
+builder.py   ← parser 输出 → OneBot forward message JSON
+config.yaml  ← 插件配置
+```
 
-MIT
+---
+
+## 📝 更新日志
+
+### v1.0.0
+- 🎉 首个版本
+- ✅ 基于 NapCat API 重构，替换外部昵称 API
+- ✅ `\|` 段分割 + `|` 内部分割语法
+- ✅ 群名片自动识别（群聊场景）
+- ✅ 自定义昵称、时间戳、@ 提及、图片
+- ✅ 群聊 / 私聊自动适配
+- ✅ YAML 配置 + 昵称缓存
+
+---
+
+## 🤝 贡献与反馈
+
+如遇问题请在 [GitHub Issues](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/issues) 提交，欢迎 Pull Request！
+
+---
+
+## 📜 许可证
+
+本项目采用 **MIT License** 开源协议。
+
+---
+
+## 👤 作者
+
+**OMSociety** — [@OMSociety](https://github.com/OMSociety)
