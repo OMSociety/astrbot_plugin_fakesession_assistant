@@ -1,6 +1,6 @@
-name: astrbot_plugin_SessionFaker # 这是你的插件的唯一识别名。
-desc: 一个用于AstrBot的插件，可以创建包含多个用户发言的伪造转发消息，支持自动获取QQ昵称。 # 插件简短描述
-help: 查看帮助获取使用说明。 # 插件的帮助信息
-version: v1.1.0 # 插件版本号。格式：v1.1.1 或者 v1.1
-author: Jason.Joestar # 作者
-repo: https://github.com/advent259141/astrbot_plugin_SessionFaker # 插件的仓库地址
+name: astrbot_plugin_SessionFaker
+desc: 合并转发伪造助手 — 基于 NapCat API 创建仿真合并转发消息，支持自定义昵称、时间戳、@提及和图片
+help: 发送「伪造帮助」获取使用说明
+version: v1.0.0
+author: OMSociety
+repo: https://github.com/OMSociety/astrbot_plugin_fakesession_assistant

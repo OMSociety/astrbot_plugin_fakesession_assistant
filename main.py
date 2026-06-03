@@ -1,180 +1,110 @@
-from astrbot.api.all import *
-import re
-import aiohttp
-import json
+"""合并转发伪造助手 — main.py"""
+from __future__ import annotations
 import os
+import yaml
 from pathlib import Path
+
+from astrbot.api.all import *
 from astrbot.api.event import filter, AstrMessageEvent
 
-@register("nodetest", "Jason.Joestar", "一个伪造转发消息的插件", "1.0.0", "插件仓库URL")
-class NodeTestPlugin(Star):
+from .parser import parse_message
+from .napcat import NapCatClient
+from .builder import build_forward_nodes
+
+PLUGIN_DIR = Path(__file__).parent
+
+
+def _load_config() -> dict:
+    config_path = PLUGIN_DIR / "config.yaml"
+    if not config_path.exists():
+        return {}
+    with open(config_path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+@register("astrbot_plugin_SessionFaker", "OMSociety", "合并转发伪造助手", "1.0.0")
+class SessionFakerPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        logger.debug("伪造转发消息插件已初始化")
-    
-    async def get_qq_nickname(self, qq_number):
-        """获取QQ昵称"""
-        url = f"http://api.mmp.cc/api/qqname?qq={qq_number}"
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    try:
-                        data = await response.json()
-                        logger.debug(f"QQ昵称API返回: {data}")
-                        
-                        if data.get("code") == 200 and "data" in data and "name" in data["data"]:
-                            nickname = data["data"]["name"]
-                            logger.debug(f"成功提取昵称: {nickname}")
-                            if nickname:
-                                return nickname
-                    except Exception as e:
-                        logger.debug(f"解析昵称出错: {str(e)}")
-        
-        return f"用户{qq_number}"
-    
-    async def parse_message_components(self, message_obj):
-        """按顺序解析消息组件，将图片正确分配到对应的消息段"""
-        segments = []
-        current_segment = {"text": "", "images": []}
-        segment_started = False
-        
-        try:
-            prefix_skipped = False
-            
-            if hasattr(message_obj, 'message'):
-                for comp in message_obj.message:
-                    if isinstance(comp, Plain):
-                        text = comp.text
-                        
-                        if not prefix_skipped and "伪造消息" in text:
-                            prefix_pos = text.find("伪造消息")
-                            text = text[prefix_pos + len("伪造消息"):].lstrip()
-                            prefix_skipped = True
-                        
-                        if "|" in text:
-                            parts = text.split("|")
-                            
-                            current_segment["text"] += parts[0]
-                            segment_started = True
-                            
-                            if current_segment["text"].strip():
-                                segments.append(current_segment)
-                            
-                            for i in range(1, len(parts)-1):
-                                segments.append({"text": parts[i], "images": []})
-                            
-                            if len(parts) > 1:
-                                current_segment = {"text": parts[-1], "images": []}
-                                segment_started = True
-                        else:
-                            current_segment["text"] += text
-                            segment_started = True
-                    
-                    elif isinstance(comp, Image) and hasattr(comp, 'url') and comp.url:
-                        if segment_started:
-                            current_segment["images"].append(comp.url)
-                            logger.debug(f"将图片 {comp.url} 添加到当前段落")
-                
-                if current_segment["text"].strip():
-                    segments.append(current_segment)
-            
-            logger.debug(f"解析完成，共有 {len(segments)} 个段落")
-            
-            for i, seg in enumerate(segments):
-                img_count = len(seg["images"])
-                logger.debug(f"段落 {i+1}: 文本长度={len(seg['text'])}, 图片数量={img_count}")
-                if img_count > 0:
-                    logger.debug(f"段落 {i+1} 包含的图片: {seg['images']}")
-        
-        except Exception as e:
-            logger.error(f"解析消息组件出错: {str(e)}")
-            segments = []
-        
-        return segments
-    
+        cfg = _load_config()
+        self.napcat = NapCatClient(
+            http_url=cfg.get("napcat_http_url", "http://127.0.0.1:3000"),
+            token=cfg.get("napcat_token", ""),
+            timeout=cfg.get("request_timeout", 10),
+        )
+        self.napcat.set_cache_ttl(cfg.get("nickname_cache_ttl", 300))
+        self.nickname_override: dict[str, str] = cfg.get("nickname_override", {})
+        logger.info("[SessionFaker] 插件已初始化")
+
     @event_message_type(EventMessageType.ALL)
-    async def on_all_message(self, event: AstrMessageEvent):
-        '''监听所有消息并检测伪造消息请求'''
-        from astrbot.api.message_components import Node, Plain, Nodes, Image as CompImage
-        
+    async def on_message(self, event: AstrMessageEvent):
         message_text = event.message_str
-        
         if not message_text.startswith("伪造消息"):
             return
-        
-        segments = await self.parse_message_components(event.message_obj)
-        
+
+        segments = parse_message(event)
         if not segments:
-            pattern = r'伪造消息((?:\s+\d+\s+[^|]+\|)+)'
-            match = re.search(pattern, message_text)
-            
-            if not match:
-                yield event.plain_result("格式错误，请使用：伪造消息 QQ号 内容 | QQ号 内容 | ...")
-                return
-                
-            content = match.group(1).strip()
-            text_segments = content.split('|')
-            
-            segments = [{"text": seg.strip(), "images": []} for seg in text_segments if seg.strip()]
-        
-        nodes_list = []
-        
-        for segment in segments:
-            text = segment["text"]
-            images = segment["images"]
-            
-            match = re.match(r'^\s*(\d+)\s+(.*)', text)
-            if not match:
-                logger.debug(f"段落格式错误，跳过: {text}")
-                continue
-                
-            qq_number, content = match.group(1), match.group(2).strip()
-            
-            nickname = await self.get_qq_nickname(qq_number)
-            
-            node_content = [Plain(content)]
-            
-            for img_url in images:
-                try:
-                    node_content.append(CompImage.fromURL(img_url))
-                    logger.debug(f"为QQ {qq_number} 添加图片: {img_url}")
-                except Exception as e:
-                    logger.debug(f"添加图片到节点失败: {e}")
-            
-            node = Node(
-                uin=int(qq_number),
-                name=nickname,
-                content=node_content
+            yield event.plain_result(
+                "格式：\n"
+                "伪造消息 QQ号 内容 \\| QQ号|昵称 内容 \\| QQ号|昵称|时间戳 内容\n"
+                "示例：伪造消息 123456 今天好冷 \\| 654321|小王 确实 \\| 789012||1717200000 记得加衣"
             )
-            nodes_list.append(node)
-        
-        if nodes_list:
-            nodes = Nodes(nodes=nodes_list)
-            yield event.chain_result([nodes])
-        else:
-            yield event.plain_result("未能解析出任何有效的消息节点")
-    
+            return
+
+        # 确定会话类型
+        group_id: str | None = None
+        user_id: str | None = None
+        scene_info = event.get_platform_event()
+        if hasattr(scene_info, 'group_id') and scene_info.group_id:
+            group_id = str(scene_info.group_id)
+        elif hasattr(scene_info, 'sender_id'):
+            user_id = str(scene_info.sender_id)
+
+        # 收集昵称
+        nicknames: dict[str, str] = {}
+        for seg in segments:
+            override = seg.nickname or self.nickname_override.get(seg.qq)
+            nicknames[seg.qq] = await self.napcat.get_nickname(
+                qq=seg.qq, group_id=group_id, override=override
+            )
+            # 也顺带查 @ 用户的昵称
+            for at_qq in seg.at_users:
+                if at_qq not in nicknames:
+                    nicknames[at_qq] = await self.napcat.get_nickname(
+                        qq=at_qq, group_id=group_id
+                    )
+
+        # 构建并发送
+        nodes = build_forward_nodes(segments, nicknames)
+        try:
+            result = await self.napcat.send_forward(group_id, user_id, nodes)
+            if result.get("status") == "ok":
+                logger.info(f"[SessionFaker] 合并转发发送成功")
+            else:
+                err_msg = result.get("message") or result.get("wording") or str(result)
+                logger.error(f"[SessionFaker] 发送失败: {err_msg}")
+                yield event.plain_result(f"发送失败：{err_msg}")
+        except Exception as e:
+            logger.error(f"[SessionFaker] NapCat 请求异常: {e}")
+            yield event.plain_result(f"NapCat 连接失败：{e}\n请检查 config.yaml 中 napcat_http_url 是否正确，且 NapCat 是否在运行。")
+
     @filter.command("伪造帮助")
-    async def help_command(self, event: AstrMessageEvent):
-        """显示插件帮助信息"""
-        help_text = """📱 伪造转发消息插件使用说明 📱
+    async def cmd_help(self, event: AstrMessageEvent):
+        yield event.plain_result(
+            "📋 合并转发伪造助手 v1.0\n\n"
+            "【语法】\n"
+            "伪造消息 QQ号 内容 \\| QQ号|昵称 内容 \\| QQ号|昵称|时间戳(10位Unix) 内容\n\n"
+            "【说明】\n"
+            "- \\| 分割不同发言段\n"
+            "- | 分割段内的 QQ/昵称/时间戳（昵称和时间戳均可省略）\n"
+            "- 图片随消息附带，自动分配到对应段\n"
+            "- @某人：在内容里写 @QQ号\n"
+            "- 昵称默认从QQ自动获取，填写后强制覆盖\n\n"
+            "【示例】\n"
+            "伪造消息 123456 今天天气真不错\n"
+            "伪造消息 123456 你好 \\| 654321|小王 你也好\n"
+            "伪造消息 123456|老张|1717200000 开会了 \\| 789012 收到"
+        )
 
-【基本格式】
-伪造消息 QQ号 消息内容 | QQ号 消息内容 | ...
-
-【带图片的格式】
-- 在任意消息段中添加图片，图片将只出现在它所在的消息段
-- 例如: 伪造消息 123456 看我的照片[图片] | 654321 好漂亮啊
-- 在这个例子中，图片只会出现在第一个人的消息中
-
-【注意事项】
-- 每个消息段之间用"|"分隔
-- 每个消息段的格式必须是"QQ号 消息内容"
-- 图片会根据它在消息中的位置分配到对应的消息段
-"""
-        yield event.plain_result(help_text)
-            
     async def terminate(self):
-        '''插件被卸载/停用时调用'''
         pass
