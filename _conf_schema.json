@@ -29,21 +29,16 @@
       }
     }
   },
-  "nickname": {
+  "tool": {
     "type": "object",
-    "description": "昵称配置",
-    "hint": "控制伪造消息时发送者昵称的获取与缓存行为",
+    "description": "LLM 工具配置",
+    "hint": "控制 AI 是否可调用插件的合并转发工具",
     "items": {
-      "nickname_cache_ttl": {
-        "type": "int",
-        "description": "昵称缓存时间（秒）",
-        "hint": "设为 0 则每次实时查询，设为 300 则缓存 5 分钟",
-        "default": 300,
-        "slider": {
-          "min": 0,
-          "max": 3600,
-          "step": 60
-        }
+      "enable_llm_tool": {
+        "type": "bool",
+        "description": "启用 LLM 工具",
+        "hint": "开启后 AI 可以自动调用 create_forward 生成合并转发",
+        "default": true
       }
     }
   }

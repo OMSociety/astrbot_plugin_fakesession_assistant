@@ -128,7 +128,15 @@ class SessionFakerPlugin(Star):
         super().__init__(context)
         global _PLUGIN_REF
         _PLUGIN_REF = self
-        self.context.add_llm_tools(_CreateForwardTool())
+        cfg = context.get_config()
+        # 拍平嵌套配置
+        flat: dict = {}
+        for section in cfg.values():
+            if isinstance(section, dict):
+                flat.update(section)
+        if flat.get("enable_llm_tool", True):
+            self.context.add_llm_tools(_CreateForwardTool())
+            logger.info("[FakeSession] LLM 工具已注册")
         logger.info("[FakeSession] 插件已初始化")
 
     def _get_bot(self, event: AstrMessageEvent):
