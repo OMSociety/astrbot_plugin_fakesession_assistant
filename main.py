@@ -93,7 +93,8 @@ class _CreateForwardTool(FunctionTool):
         "required": ["params"],
     })
 
-    async def call(self, event: AstrMessageEvent, params: str = "") -> str:
+    async def call(self, context, params: str = "") -> str:
+        event = context.messages[-1]  # 从上下文取最后一个消息事件
         data = json.loads(params)
         segs = data["segments"]
         title = data.get("title", "")
