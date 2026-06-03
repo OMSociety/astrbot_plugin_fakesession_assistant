@@ -1,7 +1,10 @@
 """NapCat HTTP API 客户端"""
 from __future__ import annotations
+
 import time
+
 import aiohttp
+
 from astrbot.api import logger
 
 

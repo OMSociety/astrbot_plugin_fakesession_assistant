@@ -1,5 +1,4 @@
 """组装器 — 将 parser 输出组装成 NapCat forward message JSON"""
-import time
 from astrbot.api import logger
 
 
@@ -49,5 +48,5 @@ def build_forward_nodes(segments, nicknames: dict[str, str]) -> list[dict]:
 
         nodes.append(node)
 
-    logger.debug(f"[SessionFaker] 构建了 {len(nodes)} 个 forward node")
+    logger.debug(f"[FakeSession] 构建了 {len(nodes)} 个 forward node")
     return nodes

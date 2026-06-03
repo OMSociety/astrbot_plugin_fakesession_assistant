@@ -1,13 +1,12 @@
 """合并转发伪造助手 — main.py"""
 from __future__ import annotations
-from pathlib import Path
 
 from astrbot.api.all import *
-from astrbot.api.event import filter, AstrMessageEvent
+from astrbot.api.event import AstrMessageEvent, filter
 
-from .parser import parse_message
-from .napcat import NapCatClient
 from .builder import build_forward_nodes
+from .napcat import NapCatClient
+from .parser import parse_message
 
 
 @register("fakesession_assistant", "Slandre & LongMarch", "合并转发伪造助手", "1.0.0")
@@ -40,8 +39,8 @@ class SessionFakerPlugin(Star):
 
         # 从消息对象直接获取会话信息
         msg = event.message_obj
-        group_id: str | None = str(msg.group_id) if getattr(msg, 'group_id', None) else None
-        user_id: str | None = str(msg.sender.user_id) if hasattr(msg.sender, 'user_id') else None
+        group_id: str | None = str(msg.group_id) if getattr(msg, "group_id", None) else None
+        user_id: str | None = str(msg.sender.user_id) if hasattr(msg.sender, "user_id") else None
 
         # 收集昵称
         nicknames: dict[str, str] = {}
