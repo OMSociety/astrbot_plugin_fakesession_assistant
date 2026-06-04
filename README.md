@@ -7,6 +7,8 @@
 基于 NapCat 与 Astrbot 的合并转发消息伪造工具。支持自定义发送者、昵称、图片、@ 提及、自定义外层卡片标题，以及 AI 自动调用。
 
 > 本项目由 AI 编写，部分源码基于 [astrbot_plugin_SessionFaker](https://github.com/advent259141/astrbot_plugin_SessionFaker) 。
+> 
+> 插件 Logo 来源于 Pixiv Pid: [141357153](https://www.pixiv.net/artworks/141357153)
 
 [快速开始](#-快速开始) · [使用说明](#-使用说明) · [配置项](#-配置项说明) · [架构](#-架构)
 
