@@ -4,7 +4,7 @@
 [![AstrBot](https://img.shields.io/badge/AstrBot-%E2%89%A5v4-green.svg)](https://github.com/AstrBotDevs/AstrBot)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
-基于 NapCat 的合并转发消息伪造工具。支持自定义发送者、昵称、图片、@ 提及、自定义外层卡片标题，以及 AI 自动调用。
+基于 NapCat 与 Astrbot 的合并转发消息伪造工具。支持自定义发送者、昵称、图片、@ 提及、自定义外层卡片标题，以及 AI 自动调用。
 
 > 本项目由 AI 编写，部分源码基于 [astrbot_plugin_SessionFaker](https://github.com/advent259141/astrbot_plugin_SessionFaker) 。
 
