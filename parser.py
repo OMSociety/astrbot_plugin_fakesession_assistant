@@ -1,4 +1,5 @@
 """消息解析器 — QQ号|昵称|内容 格式，\\| 切段，按位置分配图片"""
+
 from __future__ import annotations
 
 import re
@@ -23,7 +24,7 @@ def _split_raw_text(raw: str) -> list[str]:
     current = []
     i = 0
     while i < len(raw):
-        if raw[i:i+2] == "\\|":
+        if raw[i : i + 2] == "\\|":
             parts.append("".join(current))
             current = []
             i += 2
@@ -59,7 +60,9 @@ def _parse_segment(block: str) -> Segment | None:
 
 def parse_message(event, raw_components: list | None = None) -> list[Segment]:
     """从原始组件列表解析：按 \\| 切 blocks，图片跟在其前面的 block 后"""
-    comps = raw_components or (event.message_obj.message if hasattr(event.message_obj, "message") else [])
+    comps = raw_components or (
+        event.message_obj.message if hasattr(event.message_obj, "message") else []
+    )
 
     # 第一步：收集所有 Plain 文本和图片，并记录图片之前的累计文本长度
     raw_text = ""
@@ -115,5 +118,7 @@ def parse_message(event, raw_components: list | None = None) -> list[Segment]:
         if remaining and segments:
             segments[-1].images.extend(remaining)
 
-    logger.debug(f"[FakeSession] 解析: {len(blocks)} 段, {len(image_offsets)} 张图片, {len(segments)} 个有效段")
+    logger.debug(
+        f"[FakeSession] 解析: {len(blocks)} 段, {len(image_offsets)} 张图片, {len(segments)} 个有效段"
+    )
     return segments

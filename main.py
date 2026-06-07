@@ -1,4 +1,5 @@
 """合并转发伪造助手 — main.py"""
+
 from __future__ import annotations
 
 import json
@@ -20,7 +21,9 @@ async def _fetch_nickname(qq: str, event=None) -> str | None:
         try:
             bot = _PLUGIN_REF._get_bot(event)
             if bot:
-                data = await bot.call_action("get_stranger_info", user_id=int(qq), no_cache=False)
+                data = await bot.call_action(
+                    "get_stranger_info", user_id=int(qq), no_cache=False
+                )
                 if data.get("status") == "ok" or data.get("retcode") == 0:
                     info = data.get("data", {})
                     name = info.get("nickname") or info.get("nick")
@@ -30,10 +33,13 @@ async def _fetch_nickname(qq: str, event=None) -> str | None:
             pass
     # 备选：外部 API
     import aiohttp
+
     try:
         async with aiohttp.ClientSession() as s:
-            async with s.get(f"http://api.mmp.cc/api/qqname?qq={qq}",
-                             timeout=aiohttp.ClientTimeout(total=5)) as r:
+            async with s.get(
+                f"http://api.mmp.cc/api/qqname?qq={qq}",
+                timeout=aiohttp.ClientTimeout(total=5),
+            ) as r:
                 if r.status == 200:
                     data = await r.json()
                     if data.get("code") == 200:
@@ -62,7 +68,7 @@ def _extract_content(raw_msg, prefix: str) -> str:
     chain_text = "".join(comp.text for comp in raw_msg if isinstance(comp, Plain))
     if not chain_text.startswith(prefix):
         return ""
-    return chain_text[len(prefix):].lstrip()
+    return chain_text[len(prefix) :].lstrip()
 
 
 def _rebuild_components(raw_msg, new_text: str) -> list:
@@ -103,12 +109,19 @@ def _segments_to_onebot(segments, nicknames: dict[str, str]) -> list:
 @dataclass
 class _CreateForwardTool(FunctionTool):
     name: str = "create_forward"
-    description: str = "创建一条合并转发消息，用于伪造聊天记录。每段必须提供 qq 和 text，**强烈建议同时提供 nickname**（否则大概率显示为 QQ 号）。"
-    parameters: dict = field(default_factory=lambda: {
-        "type": "object",
-        "properties": {"params": {"type": "string", "description": 'JSON。格式为 {"segments":[{"qq":"...","text":"...","nickname":"..."}],"title":"..."}。每项须含 qq/text，nickname 尽量填写，title 可选。'}},
-        "required": ["params"],
-    })
+    description: str = "创建一条合并转发消息，用于伪造聊天记录。每段必须提供 qq 和 text，**强烈建议同时提供 nickname**（否则大概率显示为 QQ 号）。可选字段：time（Unix 秒级时间戳，用于伪造消息时间）、image（图片 URL 或本地路径，如 file:// 绝对路径）。"
+    parameters: dict = field(
+        default_factory=lambda: {
+            "type": "object",
+            "properties": {
+                "params": {
+                    "type": "string",
+                    "description": 'JSON。格式为 {"segments":[{"qq":"...","text":"...","nickname":"...","time":1756684800,"image":"url"}],"title":"..."}。每项须含 qq/text，nickname 尽量填写，title 可选，time 为可选的 Unix 秒级时间戳，image 为可选的图片 URL 或本地路径。',
+                }
+            },
+            "required": ["params"],
+        }
+    )
 
     async def call(self, context, params: str = "") -> str:
         event = context.context.event
@@ -117,11 +130,20 @@ class _CreateForwardTool(FunctionTool):
         segs = data["segments"] if isinstance(data, dict) else data
         title = data.get("title", "") if isinstance(data, dict) else ""
         from .parser import Segment as Seg
-        segments = [Seg(qq=str(s["qq"]), nickname=s.get("nickname"), text=s.get("text", ""),
-                         timestamp=s.get("time"),  # Unix 秒级时间戳
-                         images=[s["image"]] if s.get("image") else []) for s in segs]
+
+        segments = [
+            Seg(
+                qq=str(s["qq"]),
+                nickname=s.get("nickname"),
+                text=s.get("text", ""),
+                timestamp=s.get("time"),  # Unix 秒级时间戳
+                images=[s["image"]] if s.get("image") else [],
+            )
+            for s in segs
+        ]
         # 如果用户消息中附带了图片，追加到最后一个段
         from astrbot.api.message_components import Image as CompImage
+
         for comp in event.message_obj.message:
             if isinstance(comp, CompImage):
                 url = getattr(comp, "url", "") or getattr(comp, "file", "")
@@ -129,8 +151,14 @@ class _CreateForwardTool(FunctionTool):
                     segments[-1].images.append(url)
         nicknames = {}
         for seg in segments:
-            nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
-        news = [{"text": title, "prompt": title, "summary": "", "source": ""}] if title else None
+            nicknames[seg.qq] = (
+                seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
+            )
+        news = (
+            [{"text": title, "prompt": title, "summary": "", "source": ""}]
+            if title
+            else None
+        )
         await _PLUGIN_REF._send_forward(event, segments, nicknames, news=news)
         return f"已发送合并转发（{len(segments)} 条消息）"
 
@@ -182,7 +210,9 @@ class SessionFakerPlugin(Star):
                     "示例：/伪造消息 123456|你好 \\| 654321|小王|你也好"
                 )
                 return
-            new_comps = _rebuild_components(event.message_obj.message, f"伪造消息{content}")
+            new_comps = _rebuild_components(
+                event.message_obj.message, f"伪造消息{content}"
+            )
             segments = parse_message(event, raw_components=new_comps)
             if not segments:
                 yield event.plain_result("未能解析，请检查格式。")
@@ -212,15 +242,26 @@ class SessionFakerPlugin(Star):
             if not inner or not title:
                 yield event.plain_result("内层消息和标题都不能为空")
                 return
-            new_comps = _rebuild_components(event.message_obj.message, f"伪造消息{inner}")
+            new_comps = _rebuild_components(
+                event.message_obj.message, f"伪造消息{inner}"
+            )
             segments = parse_message(event, raw_components=new_comps)
             if not segments:
                 yield event.plain_result("未能解析内层消息。")
                 return
             nicknames = {}
             for seg in segments:
-                nicknames[seg.qq] = seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
-            await self._send_forward(event, segments, nicknames, news=[{"text": title, "prompt": title, "summary": "", "source": ""}])
+                nicknames[seg.qq] = (
+                    seg.nickname
+                    or await _fetch_nickname(seg.qq, event)
+                    or f"QQ{seg.qq}"
+                )
+            await self._send_forward(
+                event,
+                segments,
+                nicknames,
+                news=[{"text": title, "prompt": title, "summary": "", "source": ""}],
+            )
             event.stop_event()
         except Exception as e:
             logger.error(f"[FakeSession] 伪造外表异常: {e}", exc_info=True)
