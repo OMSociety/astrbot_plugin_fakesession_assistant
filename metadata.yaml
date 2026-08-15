@@ -7,6 +7,7 @@ repo: https://github.com/OMSociety/astrbot_plugin_fakesession_assistant
 display_name: 合并转发伪造助手
 support_platforms:
   - aiocqhttp
+  - onebot
 tags:
   - QQ
   - 聊天记录
