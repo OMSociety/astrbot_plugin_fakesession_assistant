@@ -8,6 +8,6 @@ display_name: 合并转发伪造助手
 support_platforms:
   - aiocqhttp
 tags:
-  - 合并转发
-  - 伪造
   - QQ
+  - 聊天记录
+  - 伪造
