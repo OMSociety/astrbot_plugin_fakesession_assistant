@@ -5,17 +5,19 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
-from astrbot.api import FunctionTool
-from astrbot.api.all import *
+from astrbot.api import FunctionTool, logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import Image, Node, Nodes, Plain
+from astrbot.api.star import Context, Star
 
+from .parser import Segment as Seg
 from .parser import parse_message
 
 _PLUGIN_REF = None
 
 
 async def _fetch_nickname(qq: str, event=None) -> str | None:
+    """获取 QQ 昵称，优先 OneBot 客户端，失败后走外部 API 兜底。"""
     # 优先用 OneBot 客户端查（AstrBot 已有 WS 连接）
     if event and _PLUGIN_REF:
         try:
@@ -29,29 +31,32 @@ async def _fetch_nickname(qq: str, event=None) -> str | None:
                     name = info.get("nickname") or info.get("nick")
                     if name:
                         return name
-        except Exception:
-            pass
+        except Exception as e:  # noqa: BLE001 - 兜底：查询失败不影响主流程
+            logger.debug(f"[FakeSession] OneBot 查询昵称失败: {e}")
     # 备选：外部 API
     import aiohttp
 
     try:
-        async with aiohttp.ClientSession() as s:
-            async with s.get(
+        async with (
+            aiohttp.ClientSession() as session,
+            session.get(
                 f"http://api.mmp.cc/api/qqname?qq={qq}",
                 timeout=aiohttp.ClientTimeout(total=5),
-            ) as r:
-                if r.status == 200:
-                    data = await r.json()
-                    if data.get("code") == 200:
-                        name = data.get("data", {}).get("name")
-                        if name and name != str(qq):
-                            return name
-    except Exception:
-        pass
+            ) as r,
+        ):
+            if r.status == 200:
+                data = await r.json()
+                if data.get("code") == 200:
+                    name = data.get("data", {}).get("name")
+                    if name and name != str(qq):
+                        return name
+    except Exception as e:  # noqa: BLE001 - 兜底：外部 API 不可用不影响主流程
+        logger.debug(f"[FakeSession] 外部 API 查询昵称失败: {e}")
     return None
 
 
 async def _build_nodes(segments: list, event: AstrMessageEvent | None = None) -> Nodes:
+    """把解析出的段构建为合并转发 Nodes（命令路径的本地渲染）。"""
     nodes = []
     for seg in segments:
         nickname = seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
@@ -65,6 +70,7 @@ async def _build_nodes(segments: list, event: AstrMessageEvent | None = None) ->
 
 
 def _extract_content(raw_msg, prefix: str) -> str:
+    """提取命令前缀之后的文本内容，无匹配返回空串。"""
     chain_text = "".join(comp.text for comp in raw_msg if isinstance(comp, Plain))
     if not chain_text.startswith(prefix):
         return ""
@@ -72,6 +78,7 @@ def _extract_content(raw_msg, prefix: str) -> str:
 
 
 def _rebuild_components(raw_msg, new_text: str) -> list:
+    """把第一个纯文本组件替换为新文本，其余组件（图片等）保持原位。"""
     new_comps = []
     text_done = False
     for comp in raw_msg:
@@ -86,6 +93,7 @@ def _rebuild_components(raw_msg, new_text: str) -> list:
 
 
 def _segments_to_onebot(segments, nicknames: dict[str, str]) -> list:
+    """把段转换为 OneBot 合并转发 node 数组（适配器直发用）。"""
     result = []
     for seg in segments:
         nick = nicknames.get(seg.qq, f"QQ{seg.qq}")
@@ -125,23 +133,42 @@ class _CreateForwardTool(FunctionTool):
 
     async def call(self, context, params: str = "") -> str:
         event = context.context.event
-        data = json.loads(params)
+        # 1. 解析 LLM 传入的 JSON（容错：非法 JSON 不崩溃）
+        try:
+            data = json.loads(params)
+        except (json.JSONDecodeError, TypeError) as e:
+            return f"参数解析失败：请传入合法的 JSON（{e}）"
         # 兼容两种 LLM 传参风格：{"segments": [...]} 或直接 [...]
-        segs = data["segments"] if isinstance(data, dict) else data
-        title = data.get("title", "") if isinstance(data, dict) else ""
-        from .parser import Segment as Seg
+        if isinstance(data, dict):
+            segs = data.get("segments")
+            title = data.get("title", "")
+        else:
+            segs = data
+            title = ""
+        if not isinstance(segs, list) or not segs:
+            return '参数缺少 segments 列表：请提供 {"segments":[{"qq":"...","text":"..."}]}'
 
-        segments = [
-            Seg(
-                qq=str(s["qq"]),
-                nickname=s.get("nickname"),
-                text=s.get("text", ""),
-                timestamp=s.get("time"),  # Unix 秒级时间戳
-                images=[s["image"]] if s.get("image") else [],
+        # 2. 构造段（逐条容错：qq 必须为 5-12 位数字，避免 int 转换崩溃）
+        segments = []
+        for s in segs:
+            if not isinstance(s, dict):
+                continue
+            qq = str(s.get("qq", "")).strip()
+            if not qq.isdigit() or not (5 <= len(qq) <= 12):
+                continue
+            segments.append(
+                Seg(
+                    qq=qq,
+                    nickname=s.get("nickname"),
+                    text=str(s.get("text", "")),
+                    timestamp=s.get("time"),  # Unix 秒级时间戳
+                    images=[s["image"]] if s.get("image") else [],
+                )
             )
-            for s in segs
-        ]
-        # 如果用户消息中附带了图片，追加到最后一个段
+        if not segments:
+            return "参数中没有有效的段（每段至少需要 5-12 位数字的 qq）"
+
+        # 3. 用户消息中附带的图片追加到最后一个段
         from astrbot.api.message_components import Image as CompImage
 
         for comp in event.message_obj.message:
@@ -149,21 +176,32 @@ class _CreateForwardTool(FunctionTool):
                 url = getattr(comp, "url", "") or getattr(comp, "file", "")
                 if url and segments:
                     segments[-1].images.append(url)
+
+        # 4. 昵称查询（按 QQ 去重，避免对同一 QQ 重复请求）
         nicknames = {}
         for seg in segments:
+            if seg.qq in nicknames:
+                continue
             nicknames[seg.qq] = (
                 seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
             )
-        news = (
-            [{"text": title, "prompt": title, "summary": "", "source": ""}]
-            if title
-            else None
-        )
-        await _PLUGIN_REF._send_forward(event, segments, nicknames, news=news)
+
+        # 5. 发送（失败返回友好提示，不崩溃）
+        if _PLUGIN_REF is None:
+            return "插件尚未初始化，请稍后重试。"
+        try:
+            news = (
+                [{"text": title, "prompt": title, "summary": "", "source": ""}]
+                if title
+                else None
+            )
+            await _PLUGIN_REF._send_forward(event, segments, nicknames, news=news)
+        except Exception as e:  # noqa: BLE001 - 兜底：发送失败返回提示，不让工具崩溃
+            logger.exception(f"[FakeSession] create_forward 发送失败: {e}")
+            return f"发送合并转发失败：{e}"
         return f"已发送合并转发（{len(segments)} 条消息）"
 
 
-@register("fakesession_assistant", "Slandre & LongMarch", "合并转发伪造助手", "1.0.0")
 class SessionFakerPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
@@ -174,6 +212,7 @@ class SessionFakerPlugin(Star):
         logger.info("[FakeSession] 插件已初始化")
 
     def _get_bot(self, event: AstrMessageEvent):
+        """获取当前平台的 OneBot 客户端实例。"""
         pid = event.get_platform_id()
         inst = self.context.get_platform_inst(pid)
         if inst and hasattr(inst, "get_client"):
@@ -184,6 +223,7 @@ class SessionFakerPlugin(Star):
         return None
 
     async def _send_forward(self, event, segments, nicknames, news=None):
+        """向群聊或私聊发送合并转发消息。"""
         bot = self._get_bot(event)
         if bot is None:
             raise RuntimeError("无法连接 OneBot 适配器")
@@ -218,8 +258,8 @@ class SessionFakerPlugin(Star):
                 yield event.plain_result("未能解析，请检查格式。")
                 return
             yield event.chain_result([await _build_nodes(segments, event)])
-        except Exception as e:
-            logger.error(f"[FakeSession] 异常: {e}", exc_info=True)
+        except Exception as e:  # noqa: BLE001 - 兜底：命令异常不崩溃，返回提示
+            logger.exception(f"[FakeSession] 伪造消息异常: {e}")
             yield event.plain_result(f"内部错误：{e}")
 
     @filter.command("伪造外表")
@@ -263,8 +303,8 @@ class SessionFakerPlugin(Star):
                 news=[{"text": title, "prompt": title, "summary": "", "source": ""}],
             )
             event.stop_event()
-        except Exception as e:
-            logger.error(f"[FakeSession] 伪造外表异常: {e}", exc_info=True)
+        except Exception as e:  # noqa: BLE001 - 兜底：命令异常不崩溃，返回提示
+            logger.exception(f"[FakeSession] 伪造外表异常: {e}")
             yield event.plain_result(f"内部错误：{e}")
 
     @filter.command("伪造帮助")

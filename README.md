@@ -2,7 +2,7 @@
 
 [![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant)
 [![AstrBot](https://img.shields.io/badge/AstrBot-%E2%89%A5v4-green.svg)](https://github.com/AstrBotDevs/AstrBot)
-[![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-orange.svg)](LICENSE)
 
 基于 NapCat 与 Astrbot 的合并转发消息伪造工具。支持自定义发送者、昵称、图片、@ 提及、自定义外层卡片标题，以及 AI 自动调用。
 
@@ -10,7 +10,7 @@
 > 
 > 插件 Logo 来源于 Pixiv Pid: [141357153](https://www.pixiv.net/artworks/141357153)
 
-[快速开始](#-快速开始) · [使用说明](#-使用说明) · [配置项](#-配置项说明) · [架构](#-架构)
+[快速开始](#-快速开始) · [使用说明](#-使用说明) · [配置项](#️-配置项) · [架构](#-架构)
 
 ---
 
@@ -60,7 +60,7 @@
 ```
 /伪造消息 123456|你好 \| 654321|小王|你也好
 /伪造消息 123456|看看这个[图片] \| 654321|哈哈
-/伪造消息 123456 @789012 说得对 \| 654321|小王 确实
+/伪造消息 123456|@789012 说得对 \| 654321|小王 确实
 ```
 
 **行为**
@@ -127,7 +127,7 @@ parser.py    ← 消息解析（段切分、QQ/昵称/内容提取、图片分�
 
 ## 📜 许可证
 
-本项目采用 **MIT License** 开源协议。
+本项目采用 **AGPL-3.0** 开源协议（继承上游 SessionFaker）。
 
 ---
 

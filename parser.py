@@ -85,8 +85,9 @@ def parse_message(event, raw_components: list | None = None) -> list[Segment]:
 
     blocks = _split_raw_text(raw_text)
     segments: list[Segment] = []
+    block_spans: list[tuple[int, int, Segment]] = []  # (start, end, seg)
 
-    # 按 block 在 raw_text 中的位置分配图片
+    # 按 block 在 raw_text 中的位置记录区间
     pos = 0
     for block in blocks:
         block_start = raw_text.find(block, pos)
@@ -100,22 +101,22 @@ def parse_message(event, raw_components: list | None = None) -> list[Segment]:
         if seg is None:
             continue
 
-        # 收集该 block 范围内的图片
+        block_spans.append((block_start, block_end, seg))
+        segments.append(seg)
+
+    # 分配图片：每段的归属区间延伸到下一段开头（容纳段尾的空格/换行），
+    # 最后一段延伸到消息末尾。修复图片紧跟段尾时被丢弃的问题。
+    for i, (start, _end, seg) in enumerate(block_spans):
+        span_end = block_spans[i + 1][0] if i + 1 < len(block_spans) else len(raw_text)
         for offset, url in image_offsets:
-            if block_start <= offset < block_end:
+            if start <= offset < span_end:
                 seg.images.append(url)
 
-        # 有文本或有图才保留
-        if seg.text or seg.images:
-            segments.append(seg)
-        else:
-            # 空段也保留，等下 assign 剩余图片
-            segments.append(seg)
-
     # 未分配的图片（在最后一段之后）挂到最后一段
-    if image_offsets and pos <= len(raw_text):
-        remaining = [url for offset, url in image_offsets if offset >= pos]
-        if remaining and segments:
+    if image_offsets and segments:
+        last_end = block_spans[-1][1] if block_spans else 0
+        remaining = [url for offset, url in image_offsets if offset >= last_end]
+        if remaining:
             segments[-1].images.extend(remaining)
 
     logger.debug(
