@@ -10,6 +10,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from astrbot.api.message_components import Image, Plain
+
 from parser import _parse_segment, _split_raw_text, parse_message
 
 

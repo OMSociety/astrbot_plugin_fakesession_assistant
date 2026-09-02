@@ -11,6 +11,7 @@ from fakesession_assistant.main import (
     _rebuild_components,
     _segments_to_onebot,
 )
+
 from parser import Segment
 
 
