@@ -51,21 +51,24 @@ class TestSegmentsToOnebot:
         nodes = _segments_to_onebot(segs, {"123456": "小明"})
         assert nodes[0]["data"]["time"] == 1756684800
 
+    def test_at_node(self):
+        segs = [Segment(qq="123456", text="说得对", at_users=["789012"])]
+        nodes = _segments_to_onebot(segs, {"123456": "小明"})
+        content = nodes[0]["data"]["content"]
+        assert {"type": "at", "data": {"qq": "789012"}} in content
+
 
 class TestExtractContent:
-    """命令前缀提取测试"""
+    """命令前缀提取测试（入参为唤醒前缀剥离后的 message_str）"""
 
     def test_extract_after_prefix(self):
-        comps = [Plain("/伪造消息 123456|你好")]
-        assert _extract_content(comps, "/伪造消息") == "123456|你好"
+        assert _extract_content("伪造消息 123456|你好", "伪造消息") == "123456|你好"
 
     def test_no_match_returns_empty(self):
-        comps = [Plain("随便聊聊")]
-        assert _extract_content(comps, "/伪造消息") == ""
+        assert _extract_content("随便聊聊", "伪造消息") == ""
 
     def test_prefix_only(self):
-        comps = [Plain("/伪造消息")]
-        assert _extract_content(comps, "/伪造消息") == ""
+        assert _extract_content("伪造消息", "伪造消息") == ""
 
 
 class TestRebuildComponents:

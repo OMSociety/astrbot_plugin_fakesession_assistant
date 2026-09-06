@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 from astrbot.api import FunctionTool, logger
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import Image, Node, Nodes, Plain
+from astrbot.api.message_components import At, Image, Node, Nodes, Plain
 from astrbot.api.star import Context, Star
 
 from .parser import Segment as Seg
@@ -55,26 +55,43 @@ async def _fetch_nickname(qq: str, event=None) -> str | None:
     return None
 
 
+async def _resolve_nicknames(
+    segments: list, event: AstrMessageEvent | None = None
+) -> dict[str, str]:
+    """按 QQ 去重解析昵称：显式指定 > OneBot/外部 API > QQ 号兜底。"""
+    nicknames: dict[str, str] = {}
+    for seg in segments:
+        if seg.qq not in nicknames:
+            nicknames[seg.qq] = (
+                seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
+            )
+    return nicknames
+
+
 async def _build_nodes(segments: list, event: AstrMessageEvent | None = None) -> Nodes:
     """把解析出的段构建为合并转发 Nodes（命令路径的本地渲染）。"""
+    nicknames = await _resolve_nicknames(segments, event)
     nodes = []
     for seg in segments:
-        nickname = seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
         content: list = [Plain(seg.text)] if seg.text else []
+        content.extend(At(qq=user) for user in seg.at_users)
         for img_url in seg.images:
             content.append(Image.fromURL(img_url))
         if not content:
             content = [Plain("[图片]")]
-        nodes.append(Node(uin=int(seg.qq), name=nickname, content=content))
+        nodes.append(Node(uin=int(seg.qq), name=nicknames[seg.qq], content=content))
     return Nodes(nodes=nodes)
 
 
-def _extract_content(raw_msg, prefix: str) -> str:
-    """提取命令前缀之后的文本内容，无匹配返回空串。"""
-    chain_text = "".join(comp.text for comp in raw_msg if isinstance(comp, Plain))
-    if not chain_text.startswith(prefix):
+def _extract_content(text: str, prefix: str) -> str:
+    """提取命令前缀之后的文本内容，无匹配返回空串。
+
+    入参用 event.message_str：唤醒前缀（默认 /）已被管线剥离，
+    私聊免前缀与群聊带 / 两种写法在此统一为以命令名开头。
+    """
+    if not text.startswith(prefix):
         return ""
-    return chain_text[len(prefix) :].lstrip()
+    return text[len(prefix) :].lstrip()
 
 
 def _rebuild_components(raw_msg, new_text: str) -> list:
@@ -92,6 +109,15 @@ def _rebuild_components(raw_msg, new_text: str) -> list:
     return new_comps
 
 
+def _make_news(title: str) -> list[dict] | None:
+    """构造合并转发外层卡片标题（news），空标题返回 None。"""
+    return (
+        [{"text": title, "prompt": title, "summary": "", "source": ""}]
+        if title
+        else None
+    )
+
+
 def _segments_to_onebot(segments, nicknames: dict[str, str]) -> list:
     """把段转换为 OneBot 合并转发 node 数组（适配器直发用）。"""
     result = []
@@ -100,6 +126,7 @@ def _segments_to_onebot(segments, nicknames: dict[str, str]) -> list:
         content = []
         if seg.text:
             content.append({"type": "text", "data": {"text": seg.text}})
+        content.extend({"type": "at", "data": {"qq": user}} for user in seg.at_users)
         for img_url in seg.images:
             content.append({"type": "image", "data": {"file": img_url}})
         if not content:
@@ -169,33 +196,22 @@ class _CreateForwardTool(FunctionTool):
             return "参数中没有有效的段（每段至少需要 5-12 位数字的 qq）"
 
         # 3. 用户消息中附带的图片追加到最后一个段
-        from astrbot.api.message_components import Image as CompImage
-
         for comp in event.message_obj.message:
-            if isinstance(comp, CompImage):
+            if isinstance(comp, Image):
                 url = getattr(comp, "url", "") or getattr(comp, "file", "")
-                if url and segments:
+                if url:
                     segments[-1].images.append(url)
 
         # 4. 昵称查询（按 QQ 去重，避免对同一 QQ 重复请求）
-        nicknames = {}
-        for seg in segments:
-            if seg.qq in nicknames:
-                continue
-            nicknames[seg.qq] = (
-                seg.nickname or await _fetch_nickname(seg.qq, event) or f"QQ{seg.qq}"
-            )
+        nicknames = await _resolve_nicknames(segments, event)
 
         # 5. 发送（失败返回友好提示，不崩溃）
         if _PLUGIN_REF is None:
             return "插件尚未初始化，请稍后重试。"
         try:
-            news = (
-                [{"text": title, "prompt": title, "summary": "", "source": ""}]
-                if title
-                else None
+            await _PLUGIN_REF._send_forward(
+                event, segments, nicknames, news=_make_news(title)
             )
-            await _PLUGIN_REF._send_forward(event, segments, nicknames, news=news)
         except Exception as e:  # noqa: BLE001 - 兜底：发送失败返回提示，不让工具崩溃
             logger.exception(f"[FakeSession] create_forward 发送失败: {e}")
             return f"发送合并转发失败：{e}"
@@ -207,8 +223,8 @@ class SessionFakerPlugin(Star):
         super().__init__(context)
         global _PLUGIN_REF
         _PLUGIN_REF = self
-        if context.get_config().get("tool", {}).get("enable_llm_tool", True):
-            self.context.add_llm_tools(_CreateForwardTool())
+        # 工具启停由框架自带的 inactivated_llm_tools 机制负责（WebUI 可关）
+        self.context.add_llm_tools(_CreateForwardTool())
         logger.info("[FakeSession] 插件已初始化")
 
     def _get_bot(self, event: AstrMessageEvent):
@@ -217,9 +233,13 @@ class SessionFakerPlugin(Star):
         inst = self.context.get_platform_inst(pid)
         if inst and hasattr(inst, "get_client"):
             return inst.get_client()
-        inst2 = self.context.get_platform("aiocqhttp")
-        if inst2 and hasattr(inst2, "get_client"):
-            return inst2.get_client()
+        # 兜底：按适配器类型名找任意一个 aiocqhttp 实例
+        # （get_platform_inst 按实例 ID 匹配，此处需要按 meta().name 匹配）
+        for candidate in self.context.platform_manager.platform_insts:
+            if candidate.meta().name == "aiocqhttp" and hasattr(
+                candidate, "get_client"
+            ):
+                return candidate.get_client()
         return None
 
     async def _send_forward(self, event, segments, nicknames, news=None):
@@ -241,9 +261,8 @@ class SessionFakerPlugin(Star):
 
     @filter.command("伪造消息")
     async def fake_forward(self, event: AstrMessageEvent):
-        logger.info("[FakeSession] === 伪造消息 ===")
         try:
-            content = _extract_content(event.message_obj.message, "/伪造消息")
+            content = _extract_content(event.message_str, "伪造消息")
             if not content:
                 yield event.plain_result(
                     "/伪造消息 QQ号|内容 \\| QQ号|昵称|内容\n"
@@ -264,9 +283,8 @@ class SessionFakerPlugin(Star):
 
     @filter.command("伪造外表")
     async def fake_appearance(self, event: AstrMessageEvent):
-        logger.info("[FakeSession] === 伪造外表 ===")
         try:
-            content = _extract_content(event.message_obj.message, "/伪造外表")
+            content = _extract_content(event.message_str, "伪造外表")
             if not content:
                 yield event.plain_result(
                     "/伪造外表 QQ|昵称|消息 \\| ... \\\\| 标题\n"
@@ -289,18 +307,12 @@ class SessionFakerPlugin(Star):
             if not segments:
                 yield event.plain_result("未能解析内层消息。")
                 return
-            nicknames = {}
-            for seg in segments:
-                nicknames[seg.qq] = (
-                    seg.nickname
-                    or await _fetch_nickname(seg.qq, event)
-                    or f"QQ{seg.qq}"
-                )
+            nicknames = await _resolve_nicknames(segments, event)
             await self._send_forward(
                 event,
                 segments,
                 nicknames,
-                news=[{"text": title, "prompt": title, "summary": "", "source": ""}],
+                news=_make_news(title),
             )
             event.stop_event()
         except Exception as e:  # noqa: BLE001 - 兜底：命令异常不崩溃，返回提示

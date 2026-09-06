@@ -14,7 +14,7 @@ _PLUGIN_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PLUGIN_DIR not in sys.path:
     sys.path.insert(0, _PLUGIN_DIR)
 
-import parser as _parser_module
+import parser as _parser_module  # noqa: E402 - 必须在 sys.path 注入之后导入
 
 _pkg = types.ModuleType("fakesession_assistant")
 _pkg.__path__ = [_PLUGIN_DIR]

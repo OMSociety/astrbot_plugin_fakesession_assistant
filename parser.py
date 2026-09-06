@@ -20,19 +20,7 @@ class Segment:
 
 
 def _split_raw_text(raw: str) -> list[str]:
-    parts = []
-    current = []
-    i = 0
-    while i < len(raw):
-        if raw[i : i + 2] == "\\|":
-            parts.append("".join(current))
-            current = []
-            i += 2
-        else:
-            current.append(raw[i])
-            i += 1
-    parts.append("".join(current))
-    return [p.strip() for p in parts if p.strip()]
+    return [p.strip() for p in raw.split("\\|") if p.strip()]
 
 
 def _parse_segment(block: str) -> Segment | None:
@@ -60,9 +48,7 @@ def _parse_segment(block: str) -> Segment | None:
 
 def parse_message(event, raw_components: list | None = None) -> list[Segment]:
     """从原始组件列表解析：按 \\| 切 blocks，图片跟在其前面的 block 后"""
-    comps = raw_components or (
-        event.message_obj.message if hasattr(event.message_obj, "message") else []
-    )
+    comps = raw_components if raw_components is not None else event.message_obj.message
 
     # 第一步：收集所有 Plain 文本和图片，并记录图片之前的累计文本长度
     raw_text = ""

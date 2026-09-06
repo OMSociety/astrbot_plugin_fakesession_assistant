@@ -6,13 +6,13 @@
 
 **一键生成多人聊天记录风格的合并转发消息** —— 自定义发送者 · 昵称 · 时间戳 · @ 提及 · 图片 · 外层标题
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant)
+[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant)
 [![AstrBot](https://img.shields.io/badge/AstrBot-%E2%89%A5v4-green.svg)](https://github.com/AstrBotDevs/AstrBot)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-orange.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/OMSociety/astrbot_plugin_fakesession_assistant)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/stargazers)
 [![Issues](https://img.shields.io/github/issues/OMSociety/astrbot_plugin_fakesession_assistant)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/issues)
 
-[✨ 核心特性](#-核心特性) • [📖 功能概览](#-功能概览) • [🚀 快速开始](#-快速开始) • [⚙️ 配置项说明](#️-配置项说明) • [🛠️ LLM 可调用工具](#️-llm-可调用工具) • [⚠️ 常见问题](#️-常见问题) • [📝 更新日志](CHANGELOG.md)
+[✨ 核心特性](#-核心特性) • [📖 功能概览](#-功能概览) • [🚀 快速开始](#-快速开始) • [🛠️ LLM 可调用工具](#️-llm-可调用工具) • [⚠️ 常见问题](#️-常见问题) • [📝 更新日志](CHANGELOG.md)
 
 </div>
 
@@ -31,7 +31,7 @@
 | 📢 **@ 提及支持** | 内容中 `@QQ号` 自动转为 @ 提及 |
 | ⏰ **时间戳伪造** | 自定义每条消息的发送时间（Unix 秒级时间戳） |
 | 🏷️ **伪造外表** | 自定义合并转发外层卡片标题 |
-| 🤖 **LLM 工具** | AI 可直接调用生成合并转发（可在 WebUI 开关） |
+| 🤖 **LLM 工具** | AI 可直接调用生成合并转发 |
 | 📨 **群聊 & 私聊** | 自动识别会话类型发送 |
 
 ---
@@ -91,29 +91,9 @@
 ### 第二步：使用
 
 - 聊天中发送 `/伪造消息 QQ号|内容 \| QQ号|昵称|内容`
-- 或直接让 AI 调用 `create_forward` 工具生成（默认开启，无需配置）
+- 或直接让 AI 调用 `create_forward` 工具生成
 
 > 💡 插件安装时会自动读取 `requirements.txt` 安装依赖（aiohttp），无需手动安装。
-
----
-
-## ⚙️ 配置项说明
-
-| 配置项 | 类型 | 默认值 | 说明 |
-|:------|:-----|:-------|:-----|
-| `tool.enable_llm_tool` | bool | `true` | 是否启用 LLM 工具 `create_forward`（关闭后 AI 无法自动生成） |
-
-### 快速配置模板
-
-在 WebUI 配置面板填写，或参考以下结构（`data/config/fakesession_assistant_config.json`）：
-
-```json
-{
-  "tool": {
-    "enable_llm_tool": true
-  }
-}
-```
 
 ---
 
@@ -161,7 +141,7 @@
 ## ⚠️ 常见问题
 
 **Q：需要配置什么吗？**
-A：基本无需配置即可使用命令。LLM 工具默认开启，可在配置中关闭。
+A：基本无需配置即可使用命令。
 
 **Q：昵称是怎么获取的？**
 A：优先通过 OneBot 适配器查询真实昵称，查询失败时降级为「QQ+号码」显示；也可在格式中手动指定昵称覆盖。
