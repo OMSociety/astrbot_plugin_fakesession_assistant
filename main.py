@@ -22,14 +22,14 @@ async def _fetch_nickname(qq: str, event=None) -> str | None:
         try:
             bot = _PLUGIN_REF._get_bot(event)
             if bot:
-                data = await bot.call_action(
+                info = await bot.call_action(
                     "get_stranger_info", user_id=int(qq), no_cache=False
                 )
-                if data.get("status") == "ok" or data.get("retcode") == 0:
-                    info = data.get("data", {})
-                    name = info.get("nickname") or info.get("nick")
-                    if name:
-                        return name
+                # aiocqhttp 的 call_action 返回已解包的 data dict（失败时抛 ActionFailed，
+                # 不存在 {status, retcode, data} 信封——按信封判断会恒取不到昵称）
+                name = (info or {}).get("nickname") or (info or {}).get("nick")
+                if name:
+                    return name
         except Exception as e:  # noqa: BLE001 - 查询失败不影响主流程
             logger.debug(f"[FakeSession] OneBot 查询昵称失败: {e}")
     return None
