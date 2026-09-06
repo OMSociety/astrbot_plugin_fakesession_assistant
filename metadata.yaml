@@ -2,7 +2,7 @@ name: fakesession_assistant
 desc: 基于 NapCat API 的合并转发消息伪造工具。支持自定义发送者、昵称、时间戳、@ 提及和图片
 short_desc: 一句话伪造多人聊天记录的合并转发消息
 author: OMSociety
-version: 1.0.1
+version: 1.0.2
 repo: https://github.com/OMSociety/astrbot_plugin_fakesession_assistant
 display_name: 合并转发伪造助手
 support_platforms:

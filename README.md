@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 <img src="https://raw.githubusercontent.com/OMSociety/astrbot_plugin_fakesession_assistant/main/logo.png" width="120" alt="FakeSession Logo" />
 
@@ -6,7 +6,7 @@
 
 **一键生成多人聊天记录风格的合并转发消息** —— 自定义发送者 · 昵称 · 时间戳 · @ 提及 · 图片 · 外层标题
 
-[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant)
+[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant)
 [![AstrBot](https://img.shields.io/badge/AstrBot-%E2%89%A5v4-green.svg)](https://github.com/AstrBotDevs/AstrBot)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-orange.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/OMSociety/astrbot_plugin_fakesession_assistant)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/stargazers)
@@ -92,8 +92,6 @@
 
 - 聊天中发送 `/伪造消息 QQ号|内容 \| QQ号|昵称|内容`
 - 或直接让 AI 调用 `create_forward` 工具生成
-
-> 💡 插件安装时会自动读取 `requirements.txt` 安装依赖（aiohttp），无需手动安装。
 
 ---
 

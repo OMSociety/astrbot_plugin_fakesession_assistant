@@ -17,8 +17,7 @@ _PLUGIN_REF = None
 
 
 async def _fetch_nickname(qq: str, event=None) -> str | None:
-    """获取 QQ 昵称，优先 OneBot 客户端，失败后走外部 API 兜底。"""
-    # 优先用 OneBot 客户端查（AstrBot 已有 WS 连接）
+    """获取 QQ 昵称（OneBot get_stranger_info），失败返回 None 由调用方兜底。"""
     if event and _PLUGIN_REF:
         try:
             bot = _PLUGIN_REF._get_bot(event)
@@ -31,34 +30,15 @@ async def _fetch_nickname(qq: str, event=None) -> str | None:
                     name = info.get("nickname") or info.get("nick")
                     if name:
                         return name
-        except Exception as e:  # noqa: BLE001 - 兜底：查询失败不影响主流程
+        except Exception as e:  # noqa: BLE001 - 查询失败不影响主流程
             logger.debug(f"[FakeSession] OneBot 查询昵称失败: {e}")
-    # 备选：外部 API
-    import aiohttp
-
-    try:
-        async with (
-            aiohttp.ClientSession() as session,
-            session.get(
-                f"http://api.mmp.cc/api/qqname?qq={qq}",
-                timeout=aiohttp.ClientTimeout(total=5),
-            ) as r,
-        ):
-            if r.status == 200:
-                data = await r.json()
-                if data.get("code") == 200:
-                    name = data.get("data", {}).get("name")
-                    if name and name != str(qq):
-                        return name
-    except Exception as e:  # noqa: BLE001 - 兜底：外部 API 不可用不影响主流程
-        logger.debug(f"[FakeSession] 外部 API 查询昵称失败: {e}")
     return None
 
 
 async def _resolve_nicknames(
     segments: list, event: AstrMessageEvent | None = None
 ) -> dict[str, str]:
-    """按 QQ 去重解析昵称：显式指定 > OneBot/外部 API > QQ 号兜底。"""
+    """按 QQ 去重解析昵称：显式指定 > OneBot 查询 > QQ 号兜底。"""
     nicknames: dict[str, str] = {}
     for seg in segments:
         if seg.qq not in nicknames:

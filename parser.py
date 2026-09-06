@@ -65,9 +65,17 @@ def parse_message(event, raw_components: list | None = None) -> list[Segment]:
         return []
 
     prefix_len = len("伪造消息")
-    raw_text = raw_text[prefix_len:].lstrip()
-    # 图片位置也要减去前缀长度
-    image_offsets = [(o - prefix_len, u) for o, u in image_offsets if o > prefix_len]
+    after_prefix = raw_text[prefix_len:]
+    raw_text = after_prefix.lstrip()
+    # 图片位置减去前缀长度 + 被 lstrip 剥掉的空白数：
+    # 落在被剥空白区内的图片（紧跟命令词）钳到 0，归入第一段
+    ws = len(after_prefix) - len(raw_text)
+    remapped_offsets = []
+    for o, u in image_offsets:
+        rel = o - prefix_len
+        if rel >= 0:
+            remapped_offsets.append((max(rel - ws, 0), u))
+    image_offsets = remapped_offsets
 
     blocks = _split_raw_text(raw_text)
     segments: list[Segment] = []

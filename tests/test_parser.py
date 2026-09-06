@@ -124,3 +124,15 @@ class TestParseMessage:
         segs = parse_message(None, raw_components=comps)
         assert segs[0].at_users == ["789012"]
         assert segs[1].images == ["http://example.com/3.png"]
+
+    def test_image_right_after_prefix(self):
+        # 图片紧跟命令词（命令与正文之间），应分配到第一段而不是丢掉
+        comps = [
+            Plain("伪造消息"),
+            Image(file="http://example.com/4.png"),
+            Plain(" 123456|看图"),
+        ]
+        segs = parse_message(None, raw_components=comps)
+        assert len(segs) == 1
+        assert segs[0].qq == "123456"
+        assert segs[0].images == ["http://example.com/4.png"]
