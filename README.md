@@ -1,4 +1,6 @@
-﻿<div align="center">
+<p align="center"><strong>中文</strong> · <a href="README_en.md">English</a> · <a href="README_ru.md">Русский</a> · <a href="README_ja.md">日本語</a></p>
+
+<div align="center">
 
 <img src="https://raw.githubusercontent.com/OMSociety/astrbot_plugin_fakesession_assistant/main/logo.png" width="120" alt="FakeSession Logo" />
 
@@ -6,7 +8,7 @@
 
 **一键生成多人聊天记录风格的合并转发消息** —— 自定义发送者 · 昵称 · 时间戳 · @ 提及 · 图片 · 外层标题
 
-[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant)
 [![AstrBot](https://img.shields.io/badge/AstrBot-%E2%89%A5v4-green.svg)](https://github.com/AstrBotDevs/AstrBot)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-orange.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/OMSociety/astrbot_plugin_fakesession_assistant)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/stargazers)
@@ -138,17 +140,25 @@
 
 ## ⚠️ 常见问题
 
-**Q：需要配置什么吗？**
-A：基本无需配置即可使用命令。
+### Q1：需要配置什么吗？
 
-**Q：昵称是怎么获取的？**
-A：优先通过 OneBot 适配器查询真实昵称，查询失败时降级为「QQ+号码」显示；也可在格式中手动指定昵称覆盖。
+基本无需配置即可使用命令。
 
-**Q：支持哪些平台？**
-A：基于 NapCat 的 OneBot 适配器（aiocqhttp），支持 QQ 群聊与私聊。
+### Q2：昵称是怎么获取的？
 
-**Q：伪造聊天记录合法吗？**
-A：本插件仅用于合法演示与创作。**严禁**用于诈骗、诽谤、伪造证据等违法用途，使用者自行承担全部责任。
+优先通过 OneBot 适配器查询真实昵称，查询失败时降级为「QQ+号码」显示；也可在格式中手动指定昵称覆盖。
+
+### Q3：支持哪些平台？
+
+基于 NapCat 的 OneBot 适配器（aiocqhttp），支持 QQ 群聊与私聊。
+
+### Q4：伪造聊天记录合法吗？
+
+本插件仅用于合法演示与创作。**严禁**用于诈骗、诽谤、伪造证据等违法用途，使用者自行承担全部责任。
+
+## 📝 更新日志
+
+> 📋 **[查看更新日志 →](CHANGELOG.md)**
 
 ---
 
