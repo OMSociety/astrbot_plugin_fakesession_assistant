@@ -1,0 +1,7 @@
+{
+  "metadata": {
+    "display_name": "Merged-Forward Forgery Assistant",
+    "short_desc": "Forge a merged-forward message of a multi-person chat history with a single command.",
+    "desc": "A merged-forward message forging tool built on the NapCat API. Supports custom senders, nicknames, timestamps, @ mentions, and images."
+  }
+}
