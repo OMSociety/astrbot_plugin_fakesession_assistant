@@ -43,7 +43,7 @@
 The `/伪造消息` command generates a merged-forward message in the `QQ号|内容 \| QQ号|昵称|内容` format:
 
 ```
-/伪造消息 123456|你好 \| 654321|小王|你也好
+/伪造消息 123456|Hello \| 654321|XiaoWang|Nice to meet you too
 ```
 
 | Symbol | Purpose |
@@ -65,10 +65,10 @@ The `/伪造消息` command generates a merged-forward message in the `QQ号|内
 The `/伪造外表` command customizes the outer card title of the merged-forward message:
 
 ```
-/伪造外表 123456|小明|我喜欢你 \| 654321|小红|我也喜欢你 \\| 私密对话
+/伪造外表 123456|Ming|Dinner tonight? \| 654321|Hong|Sure, see you at 7 \\| Private chat
 ```
 
-The outer card shows 「私密对话」 (Private Chat), while inside is the chat history between 小明 (Xiao Ming) and 小红 (Xiao Hong).
+The outer card shows 「Private chat」, while inside is the chat history between Ming and Hong.
 
 ---
 
@@ -92,6 +92,7 @@ The outer card shows 「私密对话」 (Private Chat), while inside is the chat
 
 - Send `/伪造消息 QQ号|内容 \| QQ号|昵称|内容` in chat
 - Or simply ask the AI to generate it by calling the `create_forward` tool
+- English aliases: /fake-message · /fake-appearance · /fake-help
 
 ---
 
@@ -100,9 +101,9 @@ The outer card shows 「私密对话」 (Private Chat), while inside is the chat
 The plugin registers 1 LLM tool; the model decides on its own when to call it — just state what you need in natural language:
 
 ```
-用户: 帮我伪造一段我和小明的聊天记录，我说"明天见"，小明说"好的"
-🤖 → create_forward(params={"segments":[{"qq":"123456","text":"明天见"},{"qq":"654321","nickname":"小明","text":"好的"}]})
-    已发送合并转发（2 条消息）✅
+User: Fake a chat history between me and Ming: I say "See you tomorrow" and Ming says "Okay"
+🤖 → create_forward(params={"segments":[{"qq":"123456","text":"See you tomorrow"},{"qq":"654321","nickname":"Ming","text":"Okay"}]})
+    Merged-forward message sent (2 messages) ✅
 ```
 
 ### create_forward
@@ -118,9 +119,9 @@ Creates a merged-forward message used to fake chat records.
 ```json
 {
   "segments": [
-    {"qq": "123456", "text": "你好", "nickname": "老王", "time": 1756684800, "image": "url"}
+    {"qq": "123456", "text": "Hello", "nickname": "Wang", "time": 1756684800, "image": "url"}
   ],
-  "title": "可选的外层标题"
+  "title": "Optional outer title"
 }
 ```
 

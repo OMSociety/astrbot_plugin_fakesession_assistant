@@ -94,6 +94,7 @@
 
 - 聊天中发送 `/伪造消息 QQ号|内容 \| QQ号|昵称|内容`
 - 或直接让 AI 调用 `create_forward` 工具生成
+- 命令支持英文别名：`/fake-message` · `/fake-appearance` · `/fake-help`
 
 ---
 
