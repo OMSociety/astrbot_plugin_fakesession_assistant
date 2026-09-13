@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.1] - 2026-09-13
+
+### ✨ 新增
+
+- 三条命令新增英文别名：`/fake-message`（伪造消息）、`/fake-appearance`（伪造外表）、`/fake-help`（伪造帮助），`/伪造帮助` 输出中同步列出；中文命令保持不变。
+
 ## [1.1.0] - 2026-09-13
 
 ### ✨ 新增
