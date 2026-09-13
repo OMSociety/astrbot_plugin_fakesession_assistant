@@ -63,15 +63,17 @@ async def _build_nodes(segments: list, event: AstrMessageEvent | None = None) ->
     return Nodes(nodes=nodes)
 
 
-def _extract_content(text: str, prefix: str) -> str:
+def _extract_content(text: str, *prefixes: str) -> str:
     """提取命令前缀之后的文本内容，无匹配返回空串。
 
     入参用 event.message_str：唤醒前缀（默认 /）已被管线剥离，
     私聊免前缀与群聊带 / 两种写法在此统一为以命令名开头。
+    同一命令的英文别名（见各 @filter.command 的 alias）传对应别名前缀。
     """
-    if not text.startswith(prefix):
-        return ""
-    return text[len(prefix) :].lstrip()
+    for prefix in prefixes:
+        if text.startswith(prefix):
+            return text[len(prefix) :].lstrip()
+    return ""
 
 
 def _rebuild_components(raw_msg, new_text: str) -> list:
@@ -239,10 +241,10 @@ class SessionFakerPlugin(Star):
             kw["user_id"] = int(event.get_sender_id())
             await bot.call_action("send_private_forward_msg", **kw)
 
-    @filter.command("伪造消息")
+    @filter.command("伪造消息", alias={"fake-message"})
     async def fake_forward(self, event: AstrMessageEvent):
         try:
-            content = _extract_content(event.message_str, "伪造消息")
+            content = _extract_content(event.message_str, "伪造消息", "fake-message")
             if not content:
                 yield event.plain_result(
                     "/伪造消息 QQ号|内容 \\| QQ号|昵称|内容\n"
@@ -261,10 +263,10 @@ class SessionFakerPlugin(Star):
             logger.exception(f"[FakeSession] 伪造消息异常: {e}")
             yield event.plain_result(f"内部错误：{e}")
 
-    @filter.command("伪造外表")
+    @filter.command("伪造外表", alias={"fake-appearance"})
     async def fake_appearance(self, event: AstrMessageEvent):
         try:
-            content = _extract_content(event.message_str, "伪造外表")
+            content = _extract_content(event.message_str, "伪造外表", "fake-appearance")
             if not content:
                 yield event.plain_result(
                     "/伪造外表 QQ|昵称|消息 \\| ... \\\\| 标题\n"
@@ -299,7 +301,7 @@ class SessionFakerPlugin(Star):
             logger.exception(f"[FakeSession] 伪造外表异常: {e}")
             yield event.plain_result(f"内部错误：{e}")
 
-    @filter.command("伪造帮助")
+    @filter.command("伪造帮助", alias={"fake-help"})
     async def cmd_help(self, event: AstrMessageEvent):
         yield event.plain_result(
             "📋 合并转发伪造助手 v1.1.0\n\n"
@@ -310,7 +312,9 @@ class SessionFakerPlugin(Star):
             "/伪造外表 QQ|昵称|消息 \\| ... \\\\| 标题\n"
             "示例：/伪造外表 123456|小明|你好 \\\\| 私密对话\n\n"
             "- \\| 分割段  | 分割QQ/内容  - 图片自动分配\n"
-            "- 昵称可省略，自动从API获取"
+            "- 昵称可省略，自动从API获取\n"
+            "【English aliases】\n"
+            "/fake-message · /fake-appearance · /fake-help"
         )
 
     async def terminate(self):
