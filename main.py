@@ -302,7 +302,7 @@ class SessionFakerPlugin(Star):
     @filter.command("伪造帮助")
     async def cmd_help(self, event: AstrMessageEvent):
         yield event.plain_result(
-            "📋 合并转发伪造助手 v1.0\n\n"
+            "📋 合并转发伪造助手 v1.1.0\n\n"
             "【伪造消息】\n"
             "/伪造消息 QQ号|内容 \\| QQ号|昵称|内容\n"
             "示例：/伪造消息 123456|你好 \\| 654321|小王|你也好\n\n"
