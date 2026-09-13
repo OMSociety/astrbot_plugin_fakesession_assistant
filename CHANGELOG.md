@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.0] - 2026-09-13
+
+### ✨ 新增
+
+- **WebUI 四语本地化**：新增 `zh-CN` / `en-US` / `ru-RU` / `ja-JP` 四份 i18n 文件（`.astrbot-plugin/i18n/`），插件名与简介文案在四种界面语言下均正确显示（本插件无配置 schema，仅 metadata 段）。
+- README 新增多语言版本（English / Русский / 日本語），顶部提供语言导航。
+
 ## [1.0.2] - 2026-09-07
 
 ### 🐛 修复
