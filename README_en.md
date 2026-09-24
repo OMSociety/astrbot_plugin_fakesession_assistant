@@ -4,7 +4,7 @@
 
 <img src="https://raw.githubusercontent.com/OMSociety/astrbot_plugin_fakesession_assistant/main/logo.png" width="120" alt="FakeSession Logo" />
 
-# 🎭 FakeSession Merged-Forward Message Faker
+# FakeSession Merged-Forward Message Faker
 
 **Generate multi-person chat-style merged-forward messages in one command** — custom senders · nicknames · timestamps · @ mentions · images · outer title
 
@@ -16,27 +16,27 @@
 
 </div>
 
-> 🎨 This project was written by AI · The source code was developed on top of [astrbot_plugin_SessionFaker](https://github.com/advent259141/astrbot_plugin_SessionFaker) · The plugin logo comes from Pixiv Pid: [141357153](https://www.pixiv.net/artworks/141357153)
+> This project was written by AI · The source code was developed on top of [astrbot_plugin_SessionFaker](https://github.com/advent259141/astrbot_plugin_SessionFaker) · The plugin logo comes from Pixiv Pid: [141357153](https://www.pixiv.net/artworks/141357153)
 
-> ⚠️ **Disclaimer**: This plugin is intended for **lawful purposes only** (chat-record layout demonstrations, content creation, anti-fraud education, etc.). It is **strictly forbidden** to use it to forge chat records for fraud, defamation, impersonating others, fabricating evidence, or any other illegal or unethical conduct. The user alone bears all legal and moral responsibility arising from the use of this plugin; the author and the project assume no responsibility whatsoever.
+> **Disclaimer**: This plugin is intended for **lawful purposes only** (chat-record layout demonstrations, content creation, anti-fraud education, etc.). It is **strictly forbidden** to use it to forge chat records for fraud, defamation, impersonating others, fabricating evidence, or any other illegal or unethical conduct. The user alone bears all legal and moral responsibility arising from the use of this plugin; the author and the project assume no responsibility whatsoever.
 
 ---
 
-## ✨ Core Features
+## Core Features
 
 | Feature | Description |
 |------|------|
-| 👤 **Custom senders** | Use any QQ number as the sender; nicknames are fetched automatically or overridden manually |
-| 🖼️ **Image support** | Attach images to messages; they are assigned to the matching segments by position |
-| 📢 **@ mention support** | `@QQ号` in the text is automatically converted into an @ mention |
-| ⏰ **Timestamp faking** | Set a custom send time for every message (Unix second-level timestamps) |
-| 🏷️ **Fake outer card** | Customize the outer card title of the merged-forward message |
-| 🤖 **LLM tool** | The AI can directly call it to generate merged-forward messages |
-| 📨 **Group & private chat** | The conversation type is detected automatically when sending |
+| **Custom senders** | Use any QQ number as the sender; nicknames are fetched automatically or overridden manually |
+| **Image support** | Attach images to messages; they are assigned to the matching segments by position |
+| **@ mention support** | `@QQ号` in the text is automatically converted into an @ mention |
+| **Timestamp faking** | Set a custom send time for every message (Unix second-level timestamps) |
+| **Fake outer card** | Customize the outer card title of the merged-forward message |
+| **LLM tool** | The AI can directly call it to generate merged-forward messages |
+| **Group & private chat** | The conversation type is detected automatically when sending |
 
 ---
 
-## 📖 Feature Overview
+## Feature Overview
 
 ### 伪造消息 (Fake Message)
 
@@ -72,21 +72,16 @@ The outer card shows 「Private chat」, while inside is the chat history betwee
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- ✅ AstrBot ≥ v4
-- ✅ NapCat is running (it communicates through AstrBot's built-in aiocqhttp adapter; no extra port required)
+- AstrBot ≥ v4
+- NapCat is running (it communicates through AstrBot's built-in aiocqhttp adapter; no extra port required)
 
 ### Step 1: Installation
 
-**Option 1: Plugin marketplace**
-- AstrBot WebUI → Plugin Marketplace → search for `fakesession_assistant`
-
-**Option 2: Manual installation**
-- Put the plugin folder into `/AstrBot/data/plugins/`
-- Reload the plugin
+AstrBot WebUI → Plugin Marketplace → search for `fakesession_assistant`
 
 ### Step 2: Usage
 
@@ -96,7 +91,7 @@ The outer card shows 「Private chat」, while inside is the chat history betwee
 
 ---
 
-## 🛠️ LLM-Callable Tool
+## LLM-Callable Tool
 
 The plugin registers 1 LLM tool; the model decides on its own when to call it — just state what you need in natural language:
 
@@ -112,7 +107,7 @@ Creates a merged-forward message used to fake chat records.
 
 | Parameter | Required | Description |
 |:----|:----:|:-----|
-| `params` | ✅ | JSON string, see the format below |
+| `params` | Required | JSON string, see the format below |
 
 **params JSON format**
 
@@ -127,17 +122,17 @@ Creates a merged-forward message used to fake chat records.
 
 | Field | Required | Description |
 |------|:----:|------|
-| `qq` | ✅ | QQ number (5-12 digits) |
-| `text` | ✅ | Message text |
+| `qq` | Required | QQ number (5-12 digits) |
+| `text` | Required | Message text |
 | `nickname` | Recommended | Nickname; if omitted, the QQ number will most likely be displayed |
 | `time` | Optional | Unix second-level timestamp, used to fake the message time |
 | `image` | Optional | Image URL (you may also just send an image; it is attached to the last segment automatically) |
 
-> 💡 Two parameter-passing styles are supported: `{"segments": [...]}`, or passing the array `[...]` directly.
+> **Note:** Two parameter-passing styles are supported: `{"segments": [...]}`, or passing the array `[...]` directly.
 
 ---
 
-## ⚠️ FAQ
+## FAQ
 
 ### Q1: Does it require any configuration?
 
@@ -155,30 +150,20 @@ The OneBot adapter based on NapCat (aiocqhttp); QQ group chats and private chats
 
 This plugin is intended only for lawful demonstrations and creative work. It is **strictly forbidden** to use it for illegal purposes such as fraud, defamation, or fabricating evidence; users bear full responsibility for their own use.
 
-## 📝 Changelog
+## Changelog
 
-> 📋 **[View the changelog →](CHANGELOG.md)**
+> **[View the changelog →](CHANGELOG.md)**
 
----
+## Support & Acknowledgements
 
-## ⭐ Support This Project
-
-If this plugin helps you, please consider giving it a Star ⭐. For questions and suggestions, feel free to open an [Issue](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/issues) or a [Pull Request](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/pulls).
-
-## 🙏 Acknowledgements
+If this plugin helps you, please consider giving it a Star. For questions and suggestions, feel free to open an [Issue](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/issues) or a [Pull Request](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/pulls).
 
 - [AstrBot](https://github.com/AstrBotDevs/AstrBot), the open-source chatbot framework
 - [astrbot_plugin_SessionFaker](https://github.com/advent259141/astrbot_plugin_SessionFaker), the upstream plugin (AGPL-3.0)
 - The plugin logo comes from Pixiv Pid: [141357153](https://www.pixiv.net/artworks/141357153)
 
----
-
-## 📜 License
+## License & Author
 
 This project is released under the **AGPL-3.0** license (inherited from the upstream SessionFaker).
-
----
-
-## 👤 Author
 
 [@OMSociety](https://github.com/OMSociety)

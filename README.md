@@ -4,7 +4,7 @@
 
 <img src="https://raw.githubusercontent.com/OMSociety/astrbot_plugin_fakesession_assistant/main/logo.png" width="120" alt="FakeSession Logo" />
 
-# 🎭 FakeSession 合并转发伪造助手
+# FakeSession 合并转发伪造助手
 
 **一键生成多人聊天记录风格的合并转发消息** —— 自定义发送者 · 昵称 · 时间戳 · @ 提及 · 图片 · 外层标题
 
@@ -14,31 +14,31 @@
 [![Stars](https://img.shields.io/github/stars/OMSociety/astrbot_plugin_fakesession_assistant)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/stargazers)
 [![Issues](https://img.shields.io/github/issues/OMSociety/astrbot_plugin_fakesession_assistant)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/issues)
 
-[✨ 核心特性](#-核心特性) • [📖 功能概览](#-功能概览) • [🚀 快速开始](#-快速开始) • [🛠️ LLM 可调用工具](#️-llm-可调用工具) • [⚠️ 常见问题](#️-常见问题) • [📝 更新日志](CHANGELOG.md)
+[核心特性](#核心特性) • [功能概览](#功能概览) • [快速开始](#快速开始) • [LLM 可调用工具](#llm-可调用工具) • [常见问题](#常见问题) • [更新日志](CHANGELOG.md)
 
 </div>
 
-> 🎨 本项目由 AI 编写 · 源码基于 [astrbot_plugin_SessionFaker](https://github.com/advent259141/astrbot_plugin_SessionFaker) 二次开发 · 插件 Logo 来源于 Pixiv Pid: [141357153](https://www.pixiv.net/artworks/141357153)
+> 本项目由 AI 编写 · 源码基于 [astrbot_plugin_SessionFaker](https://github.com/advent259141/astrbot_plugin_SessionFaker) 二次开发 · 插件 Logo 来源于 Pixiv Pid: [141357153](https://www.pixiv.net/artworks/141357153)
 
-> ⚠️ **免责声明**：本插件仅用于**合法用途**（聊天记录排版演示、内容创作、反诈科普等）。**严禁**用于伪造聊天记录实施诈骗、诽谤、冒充他人、伪造证据等任何违法或不道德行为。使用本插件产生的全部法律与道德责任由使用者自行承担，作者与项目不承担任何责任。
+> **免责声明**：本插件仅用于**合法用途**（聊天记录排版演示、内容创作、反诈科普等）。**严禁**用于伪造聊天记录实施诈骗、诽谤、冒充他人、伪造证据等任何违法或不道德行为。使用本插件产生的全部法律与道德责任由使用者自行承担，作者与项目不承担任何责任。
 
 ---
 
-## ✨ 核心特性
+## 核心特性
 
 | 特性 | 说明 |
 |------|------|
-| 👤 **自定义发送者** | 任意 QQ 号作为发送者，昵称自动获取或手动覆盖 |
-| 🖼️ **图片支持** | 消息附带图片，按位置自动分配到对应发言段 |
-| 📢 **@ 提及支持** | 内容中 `@QQ号` 自动转为 @ 提及 |
-| ⏰ **时间戳伪造** | 自定义每条消息的发送时间（Unix 秒级时间戳） |
-| 🏷️ **伪造外表** | 自定义合并转发外层卡片标题 |
-| 🤖 **LLM 工具** | AI 可直接调用生成合并转发 |
-| 📨 **群聊 & 私聊** | 自动识别会话类型发送 |
+| **自定义发送者** | 任意 QQ 号作为发送者，昵称自动获取或手动覆盖 |
+| **图片支持** | 消息附带图片，按位置自动分配到对应发言段 |
+| **@ 提及支持** | 内容中 `@QQ号` 自动转为 @ 提及 |
+| **时间戳伪造** | 自定义每条消息的发送时间（Unix 秒级时间戳） |
+| **伪造外表** | 自定义合并转发外层卡片标题 |
+| **LLM 工具** | AI 可直接调用生成合并转发 |
+| **群聊 & 私聊** | 自动识别会话类型发送 |
 
 ---
 
-## 📖 功能概览
+## 功能概览
 
 ### 伪造消息
 
@@ -74,21 +74,16 @@
 
 ---
 
-## 🚀 快速开始
+## 快速开始
 
 ### 前置条件
 
-- ✅ AstrBot ≥ v4
-- ✅ NapCat 已运行（通过 AstrBot 内部 aiocqhttp 适配器通信，无需额外端口）
+- AstrBot ≥ v4
+- NapCat 已运行（通过 AstrBot 内部 aiocqhttp 适配器通信，无需额外端口）
 
 ### 第一步：安装
 
-**方式一：插件市场**
-- AstrBot WebUI → 插件市场 → 搜索 `fakesession_assistant`
-
-**方式二：手动安装**
-- 将插件文件夹放入 `/AstrBot/data/plugins/`
-- 重载插件
+AstrBot WebUI → 插件市场 → 搜索 `fakesession_assistant`
 
 ### 第二步：使用
 
@@ -98,7 +93,7 @@
 
 ---
 
-## 🛠️ LLM 可调用工具
+## LLM 可调用工具
 
 插件注册 1 个 LLM 工具，模型会自动判断何时调用，你只需用自然语言说需求：
 
@@ -114,7 +109,7 @@
 
 | 参数 | 必填 | 说明 |
 |:----|:----:|:-----|
-| `params` | ✅ | JSON 字符串，格式见下 |
+| `params` | 必填 | JSON 字符串，格式见下 |
 
 **params JSON 格式**
 
@@ -129,17 +124,17 @@
 
 | 字段 | 必填 | 说明 |
 |------|:----:|------|
-| `qq` | ✅ | QQ 号（5-12 位数字） |
-| `text` | ✅ | 消息内容 |
+| `qq` | 必填 | QQ 号（5-12 位数字） |
+| `text` | 必填 | 消息内容 |
 | `nickname` | 建议 | 昵称，不填大概率显示 QQ 号 |
 | `time` | 可选 | Unix 秒级时间戳，用于伪造消息时间 |
 | `image` | 可选 | 图片 URL（也可直接发图，自动挂载到最后一段） |
 
-> 💡 支持两种传参风格：`{"segments": [...]}` 或直接传数组 `[...]`。
+> **提示：**支持两种传参风格：`{"segments": [...]}` 或直接传数组 `[...]`。
 
 ---
 
-## ⚠️ 常见问题
+## 常见问题
 
 ### Q1：需要配置什么吗？
 
@@ -157,30 +152,20 @@
 
 本插件仅用于合法演示与创作。**严禁**用于诈骗、诽谤、伪造证据等违法用途，使用者自行承担全部责任。
 
-## 📝 更新日志
+## 更新日志
 
-> 📋 **[查看更新日志 →](CHANGELOG.md)**
+> **[查看更新日志 →](CHANGELOG.md)**
 
----
+## 支持与致谢
 
-## ⭐ 支持本项目
-
-如果这个插件对你有帮助，欢迎点亮 Star ⭐，有问题和建议请提交 [Issue](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/issues) 或 [Pull Request](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/pulls)。
-
-## 🙏 致谢
+如果这个插件对你有帮助，欢迎点亮 Star，有问题和建议请提交 [Issue](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/issues) 或 [Pull Request](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/pulls)。
 
 - [AstrBot](https://github.com/AstrBotDevs/AstrBot) 开源聊天机器人框架
 - [astrbot_plugin_SessionFaker](https://github.com/advent259141/astrbot_plugin_SessionFaker) 上游插件（AGPL-3.0）
 - 插件 Logo 来源于 Pixiv Pid: [141357153](https://www.pixiv.net/artworks/141357153)
 
----
-
-## 📜 许可证
+## 许可证与作者
 
 本项目采用 **AGPL-3.0** 开源协议（继承上游 SessionFaker）。
-
----
-
-## 👤 作者
 
 [@OMSociety](https://github.com/OMSociety)
