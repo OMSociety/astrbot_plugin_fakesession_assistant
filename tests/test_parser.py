@@ -136,3 +136,16 @@ class TestParseMessage:
         assert len(segs) == 1
         assert segs[0].qq == "123456"
         assert segs[0].images == ["http://example.com/4.png"]
+
+    def test_image_before_trailing_plain_not_duplicated(self):
+        # 图片后面还跟着一个 Plain（图片夹在文本组件之间）：图片只能分配一次。
+        # 图片 offset 落在尾段区间内已被第一轮分配，兜底不得再补一份。
+        comps = [
+            Plain("伪造消息 123456|看图"),
+            Image(file="http://example.com/5.png"),
+            Plain("\n"),
+        ]
+        segs = parse_message(None, raw_components=comps)
+        assert len(segs) == 1
+        assert segs[0].qq == "123456"
+        assert segs[0].images == ["http://example.com/5.png"]

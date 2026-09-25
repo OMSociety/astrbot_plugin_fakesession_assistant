@@ -8,7 +8,7 @@
 
 **一键生成多人聊天记录风格的合并转发消息** —— 自定义发送者 · 昵称 · 时间戳 · @ 提及 · 图片 · 外层标题
 
-[![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant)
+[![Version](https://img.shields.io/badge/version-1.1.2-blue.svg)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant)
 [![AstrBot](https://img.shields.io/badge/AstrBot-%E2%89%A5v4-green.svg)](https://github.com/AstrBotDevs/AstrBot)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-orange.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/OMSociety/astrbot_plugin_fakesession_assistant)](https://github.com/OMSociety/astrbot_plugin_fakesession_assistant/stargazers)

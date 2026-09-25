@@ -106,10 +106,11 @@ def parse_message(event, raw_components: list | None = None) -> list[Segment]:
             if start <= offset < span_end:
                 seg.images.append(url)
 
-    # 未分配的图片（在最后一段之后）挂到最后一段
+    # 未被第一轮覆盖的图片（位于 raw_text 末尾之后）挂到最后一段。
+    # 尾段区间在第一轮已延伸到 len(raw_text)，这里只补越界的那批，
+    # 否则落在 [尾段末, len(raw_text)) 的图片会被追加第二份。
     if image_offsets and segments:
-        last_end = block_spans[-1][1] if block_spans else 0
-        remaining = [url for offset, url in image_offsets if offset >= last_end]
+        remaining = [url for offset, url in image_offsets if offset >= len(raw_text)]
         if remaining:
             segments[-1].images.extend(remaining)
 
