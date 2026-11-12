@@ -243,6 +243,7 @@ class SessionFakerPlugin(Star):
 
     @filter.command("伪造消息", alias={"fake-message"})
     async def fake_forward(self, event: AstrMessageEvent):
+        """按「QQ号|内容」格式拼装合并转发消息。"""
         try:
             content = _extract_content(event.message_str, "伪造消息", "fake-message")
             if not content:
@@ -265,6 +266,7 @@ class SessionFakerPlugin(Star):
 
     @filter.command("伪造外表", alias={"fake-appearance"})
     async def fake_appearance(self, event: AstrMessageEvent):
+        """套用自定义标题生成合并转发，模拟聊天记录外观。"""
         try:
             content = _extract_content(event.message_str, "伪造外表", "fake-appearance")
             if not content:
@@ -303,6 +305,7 @@ class SessionFakerPlugin(Star):
 
     @filter.command("伪造帮助", alias={"fake-help"})
     async def cmd_help(self, event: AstrMessageEvent):
+        """查看合并转发伪造助手的用法与示例。"""
         yield event.plain_result(
             "📋 合并转发伪造助手 v1.1.0\n\n"
             "【伪造消息】\n"
