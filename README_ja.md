@@ -2,9 +2,7 @@
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/OMSociety/astrbot_plugin_fakesession_assistant/main/logo.png" width="120" alt="FakeSession Logo" />
-
-# FakeSession まとめ転送フェイクアシスタント
+<h1><img src="https://raw.githubusercontent.com/OMSociety/astrbot_plugin_fakesession_assistant/main/logo.png" width="192" alt="FakeSession Logo"><br>FakeSession まとめ転送フェイクアシスタント</h1>
 
 **ワンコマンドで複数人のチャット風まとめ転送メッセージを生成** —— 送信者 · ニックネーム · タイムスタンプ · @ メンション · 画像 · 外側タイトル
 

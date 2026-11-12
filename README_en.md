@@ -2,9 +2,7 @@
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/OMSociety/astrbot_plugin_fakesession_assistant/main/logo.png" width="120" alt="FakeSession Logo" />
-
-# FakeSession Merged-Forward Message Faker
+<h1><img src="https://raw.githubusercontent.com/OMSociety/astrbot_plugin_fakesession_assistant/main/logo.png" width="192" alt="FakeSession Logo"><br>FakeSession Merged-Forward Message Faker</h1>
 
 **Generate multi-person chat-style merged-forward messages in one command** — custom senders · nicknames · timestamps · @ mentions · images · outer title
 

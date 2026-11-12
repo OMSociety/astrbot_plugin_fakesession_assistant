@@ -2,9 +2,7 @@
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/OMSociety/astrbot_plugin_fakesession_assistant/main/logo.png" width="120" alt="FakeSession Logo" />
-
-# FakeSession — помощник подделки объединённой пересылки
+<h1><img src="https://raw.githubusercontent.com/OMSociety/astrbot_plugin_fakesession_assistant/main/logo.png" width="192" alt="FakeSession Logo"><br>FakeSession — помощник подделки объединённой пересылки</h1>
 
 **Генерация сообщений объединённой пересылки в стиле переписки нескольких людей одним действием** — настраиваемые отправители · никнеймы · метки времени · @упоминания · изображения · внешний заголовок
 
